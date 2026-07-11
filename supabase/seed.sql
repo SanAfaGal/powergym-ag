@@ -1,11 +1,35 @@
 -- supabase/seed.sql
 -- Local-only seed data. Never run against staging/production (supabase db reset is local-only).
 
-insert into auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+-- NOTE: role must be set via raw_app_meta_data, not raw_user_meta_data --
+-- handle_new_user() (migration 0011) only reads the former, since the
+-- latter is client-writable (privilege-escalation hardening).
+--
+-- NOTE: instance_id/aud/role are required for GoTrue's password grant to
+-- accept these rows -- without them it returns a generic "Invalid login
+-- credentials" (indistinguishable from a wrong password) even though the
+-- bcrypt hash matches. instance_id is GoTrue's well-known all-zero UUID.
+-- The token columns must be '' rather than NULL -- GoTrue's Go client
+-- scans them into plain strings and errors ("converting NULL to string is
+-- unsupported") on a NULL, which surfaces as a 500 on every login attempt,
+-- not just these seeded users'.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
+)
 values
-  ('00000000-0000-0000-0000-000000000001', 'admin@powergym.local', crypt('devpassword123', gen_salt('bf')), now(), '{"full_name": "Admin Seed", "role": "admin"}'),
-  ('00000000-0000-0000-0000-000000000002', 'employee@powergym.local', crypt('devpassword123', gen_salt('bf')), now(), '{"full_name": "Employee Seed", "role": "employee"}')
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'admin@powergym.local', crypt('devpassword123', gen_salt('bf')), now(), '{"full_name": "Admin Seed"}', '{"role": "admin"}', now(), now(), '', '', '', '', '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'employee@powergym.local', crypt('devpassword123', gen_salt('bf')), now(), '{"full_name": "Employee Seed"}', '{"role": "employee"}', now(), now(), '', '', '', '', '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'inactive@powergym.local', crypt('devpassword123', gen_salt('bf')), now(), '{"full_name": "Inactive Seed"}', '{"role": "employee"}', now(), now(), '', '', '', '', '', '', '', '')
 on conflict (id) do nothing;
+
+-- deactivated staff account, used by the login e2e test to confirm a
+-- deactivated user is signed out and blocked rather than let through with
+-- silently empty RLS results
+update public.profiles set is_active = false
+where id = '00000000-0000-0000-0000-000000000003';
 
 insert into public.plans (id, name, duration_unit, duration_count)
 values
