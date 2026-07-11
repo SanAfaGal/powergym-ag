@@ -11,8 +11,20 @@
 -- apply here: each `select is(...)` below is its own top-level command, so
 -- the status re-check after `expire_subscriptions()` runs in a fresh
 -- statement/snapshot that does see the committed update. No changes needed.
+--
+-- NOTE (post-review): added two regression assertions confirming `anon`
+-- has no EXECUTE privilege on either SECURITY DEFINER cron RPC. Migration
+-- 0009 explicitly revokes the default PUBLIC EXECUTE grant on both
+-- functions and re-grants only to `service_role` (see its NOTE for why:
+-- both functions bypass RLS and mutate every client's subscriptions, so
+-- leaving the Postgres default PUBLIC grant in place would let any
+-- `anon`/`authenticated` caller trigger a mass status change via the
+-- exposed `public` schema's Data API). This closes the gap where a future
+-- migration could accidentally re-grant EXECUTE to PUBLIC/anon/authenticated
+-- (e.g. a careless `grant execute on all functions in schema public to
+-- authenticated` elsewhere) and nothing would catch it. plan(3) -> plan(5).
 begin;
-select plan(3);
+select plan(5);
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
 values ('CC', 'CRON-CLIENT-1', 'Cron', 'Client'), ('CC', 'CRON-CLIENT-2', 'Cron', 'Client2');
@@ -39,6 +51,17 @@ select is(
   'the overdue subscription is now expired'
 );
 select is(public.activate_scheduled_subscriptions(), 1, 'activate_scheduled_subscriptions activates the one due scheduled subscription');
+
+select is(
+  has_function_privilege('anon', 'public.expire_subscriptions()', 'execute'),
+  false,
+  'anon has no EXECUTE privilege on expire_subscriptions (must stay service_role-only)'
+);
+select is(
+  has_function_privilege('anon', 'public.activate_scheduled_subscriptions()', 'execute'),
+  false,
+  'anon has no EXECUTE privilege on activate_scheduled_subscriptions (must stay service_role-only)'
+);
 
 select * from finish();
 rollback;
