@@ -39,8 +39,7 @@ select has_index('public', 'subscriptions', 'one_active_subscription_per_client'
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
 values ('CC', 'TEST-SUB-1', 'Sub', 'Test');
-insert into public.plans (name, price, duration_unit, duration_count)
-values ('Monthly Test Plan', 100000, 'month', 1);
+select tests.create_plan('Monthly Test Plan', 100000, 'month', 1);
 
 select ok(
   (select true), -- placeholder anchor for readability, real assertions follow
@@ -49,7 +48,7 @@ select ok(
 
 with new_sub as (
   insert into public.subscriptions (client_id, plan_id, start_date, end_date, base_price, discount_percentage)
-  select c.id, p.id, current_date, current_date + 30, p.price, 20
+  select c.id, p.id, current_date, current_date + 30, 100000, 20
   from public.clients c, public.plans p
   where c.dni_number = 'TEST-SUB-1' and p.name = 'Monthly Test Plan'
   returning final_price
@@ -62,14 +61,14 @@ select is(
 
 -- first active subscription for the client (plain insert, not a TAP assertion)
 insert into public.subscriptions (client_id, plan_id, start_date, end_date, status, base_price)
-select c.id, p.id, current_date, current_date + 30, 'active', p.price
+select c.id, p.id, current_date, current_date + 30, 'active', 100000
 from public.clients c, public.plans p
 where c.dni_number = 'TEST-SUB-1' and p.name = 'Monthly Test Plan';
 
 -- second active subscription for the same client must be rejected
 select throws_ok(
   $$ insert into public.subscriptions (client_id, plan_id, start_date, end_date, status, base_price)
-     select c.id, p.id, current_date, current_date + 30, 'active', p.price
+     select c.id, p.id, current_date, current_date + 30, 'active', 100000
      from public.clients c, public.plans p
      where c.dni_number = 'TEST-SUB-1' and p.name = 'Monthly Test Plan' $$,
   '23505',

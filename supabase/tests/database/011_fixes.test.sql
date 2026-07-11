@@ -7,8 +7,7 @@ select ok(public.today_bogota() is not null, 'today_bogota() returns a value');
 -- not get stuck in pending_payment forever.
 insert into public.clients (dni_type, dni_number, first_name, last_name)
 values ('CC', 'FIX-CLIENT-1', 'Fix', 'Client');
-insert into public.plans (name, price, duration_unit, duration_count)
-values ('Fix Plan', 100000, 'month', 1);
+select tests.create_plan('Fix Plan', 100000, 'month', 1);
 
 select public.create_subscription(
   (select id from public.clients where dni_number = 'FIX-CLIENT-1'),
@@ -39,7 +38,7 @@ select public.activate_scheduled_subscriptions();
 
 select is(
   (select status from public.subscriptions where client_id = (select id from public.clients where dni_number = 'FIX-CLIENT-1') and status <> 'expired'),
-  'active'::subscription_status_enum,
+  'active',
   'a fully prepaid scheduled renewal is activated directly instead of stuck in pending_payment'
 );
 

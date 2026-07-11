@@ -82,8 +82,7 @@ select is(
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
 values ('CC', 'RPC-CLIENT-1', 'Rpc', 'Client');
-insert into public.plans (name, price, duration_unit, duration_count)
-values ('RPC Plan', 100000, 'month', 1);
+select tests.create_plan('RPC Plan', 100000, 'month', 1);
 
 select is(
   (select status from public.create_subscription(
@@ -92,7 +91,7 @@ select is(
     current_date,
     0
   )),
-  'pending_payment'::subscription_status_enum,
+  'pending_payment',
   'create_subscription with start_date=today yields pending_payment'
 );
 
@@ -118,7 +117,7 @@ select public.record_payment(
 select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')),
-  'active'::subscription_status_enum,
+  'active',
   'record_payment activates the subscription once fully paid'
 );
 
@@ -169,7 +168,7 @@ select is(
        and status = 'active'),
     'test cancellation'
   )),
-  'canceled'::subscription_status_enum,
+  'canceled',
   'cancel_subscription cancels the active subscription'
 );
 
@@ -177,7 +176,7 @@ select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
      and start_date = current_date - 1),
-  'pending_payment'::subscription_status_enum,
+  'pending_payment',
   'cancel_subscription promotes the due scheduled renewal to pending_payment'
 );
 
@@ -187,7 +186,7 @@ select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
      and start_date > current_date),
-  'scheduled'::subscription_status_enum,
+  'scheduled',
   'cancel_subscription cascade leaves a not-yet-due scheduled renewal untouched'
 );
 
@@ -206,7 +205,7 @@ select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
      and start_date = current_date - 1),
-  'pending_payment'::subscription_status_enum,
+  'pending_payment',
   'record_payment does not activate a subscription when amount paid is less than final_price'
 );
 

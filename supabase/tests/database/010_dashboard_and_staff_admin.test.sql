@@ -41,8 +41,7 @@ update public.profiles set role = 'admin' where id = tests.get_supabase_uid('adm
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
 values ('CC', 'DASH-CLIENT-1', 'Dash', 'Client');
-insert into public.plans (name, price, duration_unit, duration_count)
-values ('Dash Plan', 100000, 'month', 1);
+select tests.create_plan('Dash Plan', 100000, 'month', 1);
 insert into public.subscriptions (client_id, plan_id, start_date, end_date, status, base_price)
 values (
   (select id from public.clients where dni_number = 'DASH-CLIENT-1'),

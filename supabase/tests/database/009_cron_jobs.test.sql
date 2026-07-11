@@ -28,8 +28,7 @@ select plan(5);
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
 values ('CC', 'CRON-CLIENT-1', 'Cron', 'Client'), ('CC', 'CRON-CLIENT-2', 'Cron', 'Client2');
-insert into public.plans (name, price, duration_unit, duration_count)
-values ('Cron Plan', 50000, 'month', 1);
+select tests.create_plan('Cron Plan', 50000, 'month', 1);
 
 insert into public.subscriptions (client_id, plan_id, start_date, end_date, status, base_price)
 values (
@@ -47,7 +46,7 @@ values (
 select is(public.expire_subscriptions(), 1, 'expire_subscriptions expires exactly the one overdue active subscription');
 select is(
   (select status from public.subscriptions where client_id = (select id from public.clients where dni_number = 'CRON-CLIENT-1')),
-  'expired'::subscription_status_enum,
+  'expired',
   'the overdue subscription is now expired'
 );
 select is(public.activate_scheduled_subscriptions(), 1, 'activate_scheduled_subscriptions activates the one due scheduled subscription');

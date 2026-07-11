@@ -103,6 +103,31 @@ begin
 end;
 $$;
 
+-- Since migration 0013, plans no longer carry a `price` column (it moved to
+-- plan_prices, an append-only history) -- every NNN_*.test.sql file that
+-- needs a plan+price fixture would otherwise repeat the same two-table
+-- insert. This wraps both.
+create or replace function tests.create_plan(
+  p_name text, p_price numeric, p_duration_unit duration_type_enum, p_duration_count integer
+)
+returns uuid
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_plan_id uuid;
+begin
+  insert into public.plans (name, duration_unit, duration_count)
+  values (p_name, p_duration_unit, p_duration_count)
+  returning id into v_plan_id;
+
+  insert into public.plan_prices (plan_id, price)
+  values (v_plan_id, p_price);
+
+  return v_plan_id;
+end;
+$$;
+
 -- Functions default to EXECUTE granted to PUBLIC, but grant explicitly and
 -- defensively so this doesn't silently depend on a privilege that could be
 -- revoked/changed upstream.
@@ -110,13 +135,14 @@ grant execute on all functions in schema tests to authenticated, anon, service_r
 
 -- pg_prove requires every file it processes to emit a TAP plan, even a
 -- setup-only file with no assertions of its own (see Supabase's documented
--- `000-setup-tests-hooks.sql` convention). This block just confirms the three
+-- `000-setup-tests-hooks.sql` convention). This block just confirms the
 -- helper functions above were created successfully.
 begin;
-select plan(4);
+select plan(5);
 select has_function('tests', 'create_supabase_user', 'tests.create_supabase_user() exists');
 select has_function('tests', 'get_supabase_uid', 'tests.get_supabase_uid() exists');
 select has_function('tests', 'get_supabase_email', 'tests.get_supabase_email() exists');
 select has_function('tests', 'authenticate_as', 'tests.authenticate_as() exists');
+select has_function('tests', 'create_plan', 'tests.create_plan() exists');
 select * from finish();
 rollback;

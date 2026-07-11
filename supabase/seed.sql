@@ -7,11 +7,17 @@ values
   ('00000000-0000-0000-0000-000000000002', 'employee@powergym.local', crypt('devpassword123', gen_salt('bf')), now(), '{"full_name": "Employee Seed", "role": "employee"}')
 on conflict (id) do nothing;
 
-insert into public.plans (id, name, price, duration_unit, duration_count)
+insert into public.plans (id, name, duration_unit, duration_count)
 values
-  ('10000000-0000-0000-0000-000000000001', 'Plan Mensual', 100000, 'month', 1),
-  ('10000000-0000-0000-0000-000000000002', 'Plan Trimestral', 270000, 'month', 3)
+  ('10000000-0000-0000-0000-000000000001', 'Plan Mensual', 'month', 1),
+  ('10000000-0000-0000-0000-000000000002', 'Plan Trimestral', 'month', 3)
 on conflict (id) do nothing;
+
+insert into public.plan_prices (plan_id, price)
+values
+  ('10000000-0000-0000-0000-000000000001', 100000),
+  ('10000000-0000-0000-0000-000000000002', 270000)
+on conflict do nothing;
 
 insert into public.clients (id, dni_type, dni_number, first_name, last_name, phone)
 values
@@ -24,7 +30,17 @@ values
   ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', current_date - 10, current_date + 20, 'active', 100000)
 on conflict (id) do nothing;
 
+insert into public.bank_accounts (id, bank_code, account_type_code, account_number, account_holder_name, transfer_key)
+values
+  ('40000000-0000-0000-0000-000000000001', 'BANCOLOMBIA', 'savings', '21800002796', 'PowerGym AG', '@powergym')
+on conflict (id) do nothing;
+
 insert into public.payments (subscription_id, amount, payment_method)
 values
-  ('30000000-0000-0000-0000-000000000001', 100000, 'cash')
+  ('30000000-0000-0000-0000-000000000001', 60000, 'cash')
+on conflict do nothing;
+
+insert into public.payments (subscription_id, amount, payment_method, bank_account_id)
+values
+  ('30000000-0000-0000-0000-000000000001', 40000, 'qr', '40000000-0000-0000-0000-000000000001')
 on conflict do nothing;

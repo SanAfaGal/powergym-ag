@@ -6,8 +6,7 @@ select tests.create_supabase_user('admin@example.test', 'admin@example.test');
 select tests.create_supabase_user('employee@example.test', 'employee@example.test');
 update public.profiles set role = 'admin' where id = tests.get_supabase_uid('admin@example.test');
 
-insert into public.plans (name, price, duration_unit, duration_count)
-values ('RLS Test Plan', 50000, 'month', 1);
+select tests.create_plan('RLS Test Plan', 50000, 'month', 1);
 
 -- employee can read plans
 select tests.authenticate_as('employee@example.test');
@@ -18,8 +17,8 @@ select isnt_empty(
 
 -- employee cannot insert plans
 select throws_ok(
-  $$ insert into public.plans (name, price, duration_unit, duration_count)
-     values ('Employee Plan', 10000, 'month', 1) $$,
+  $$ insert into public.plans (name, duration_unit, duration_count)
+     values ('Employee Plan', 'month', 1) $$,
   '42501',
   null,
   'employee insert into plans is rejected by RLS'
@@ -28,8 +27,8 @@ select throws_ok(
 -- admin can insert plans
 select tests.authenticate_as('admin@example.test');
 select lives_ok(
-  $$ insert into public.plans (name, price, duration_unit, duration_count)
-     values ('Admin Plan', 10000, 'month', 1) $$,
+  $$ insert into public.plans (name, duration_unit, duration_count)
+     values ('Admin Plan', 'month', 1) $$,
   'admin insert into plans succeeds'
 );
 
