@@ -155,7 +155,12 @@ export function ClientForm({
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Seleccionar" />
+                        <SelectValue placeholder="Seleccionar">
+                          {(value: string) =>
+                            documentTypes.find((d) => d.code === value)
+                              ?.name ?? "Seleccionar"
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -279,7 +284,12 @@ export function ClientForm({
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Seleccionar" />
+                          <SelectValue placeholder="Seleccionar">
+                            {(value: string) =>
+                              genderTypes.find((g) => g.code === value)
+                                ?.name ?? "Seleccionar"
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

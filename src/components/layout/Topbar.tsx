@@ -5,6 +5,7 @@ import { signOut } from "@/modules/auth";
 const NAV_LINKS = [
   { href: "/dashboard", label: "Inicio" },
   { href: "/clients", label: "Clientes" },
+  { href: "/plans", label: "Planes" },
 ];
 
 export function Topbar({ fullName }: { fullName: string }) {

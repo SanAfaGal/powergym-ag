@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import type { Client } from "../queries";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ContactLinks } from "./ContactLinks";
 
 export function ClientCards({ clients }: { clients: Client[] }) {

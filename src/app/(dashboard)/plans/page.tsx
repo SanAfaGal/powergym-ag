@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { listPlans, isAdmin, PlanList } from "@/modules/plans";
+
+export default async function PlansPage() {
+  const [plans, canCreate] = await Promise.all([listPlans(), isAdmin()]);
+
+  return (
+    <div>
+      <PageHeader
+        title="Planes"
+        description="Los planes de membresía disponibles en el gimnasio."
+        actions={
+          canCreate ? (
+            <Button render={<Link href="/plans/new" />} nativeButton={false}>
+              Nuevo plan
+            </Button>
+          ) : undefined
+        }
+      />
+
+      <Card className="gap-0 py-0">
+        <div className="p-4 sm:p-6">
+          <PlanList plans={plans} canCreate={canCreate} />
+        </div>
+      </Card>
+    </div>
+  );
+}

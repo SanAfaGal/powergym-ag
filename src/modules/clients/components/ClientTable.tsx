@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import type { Client } from "../queries";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ContactLinks } from "./ContactLinks";
 
 export function ClientTable({ clients }: { clients: Client[] }) {
