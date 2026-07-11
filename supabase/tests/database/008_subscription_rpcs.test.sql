@@ -15,8 +15,18 @@
 -- activates the subscription (assertion 5 below), which is the earliest
 -- point at which the guard is genuinely exercised, and where it remains
 -- true up through renew_subscription (renew never changes the OLD row's
--- status). This is a pure reordering; no assertion was added or removed,
--- so plan(8) still matches 8 real assertions.
+-- status). This is a pure reordering; no assertion was added or removed.
+--
+-- NOTE (post-review): two negative-case assertions were added after initial
+-- review of this file, on top of the original 8: (1) confirming the
+-- future-dated 'scheduled' row from renew_subscription is left untouched
+-- ('scheduled') by cancel_subscription's cascade -- without this, a cascade
+-- bug that promoted every 'scheduled' sibling regardless of start_date would
+-- still pass the original suite, since only the due row's outcome was
+-- checked; and (2) confirming a partial payment (amount < final_price) does
+-- NOT activate a 'pending_payment' subscription, reusing the already-due
+-- row from the cascade as its target. plan(8) was bumped to plan(10)
+-- accordingly.
 --
 -- NOTE: the brief's literal SQL for the cascade-promotion check relied on
 -- renew_subscription's own output row to later be "due" for
@@ -42,7 +52,7 @@
 -- than blindly promoting every 'scheduled' sibling, since the future-dated
 -- renewal from renew_subscription coexists and must NOT be promoted.
 begin;
-select plan(8);
+select plan(10);
 
 -- NOTE: the brief's literal SQL authenticated as a plain staff user before
 -- inserting the 'RPC Plan' plan row. public.plans' insert policy (migration
@@ -169,6 +179,35 @@ select is(
      and start_date = current_date - 1),
   'pending_payment'::subscription_status_enum,
   'cancel_subscription promotes the due scheduled renewal to pending_payment'
+);
+
+-- selectivity: the future-dated renew_subscription row must NOT be swept up
+-- by the cascade just because it also has status = 'scheduled'
+select is(
+  (select status from public.subscriptions
+     where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
+     and start_date > current_date),
+  'scheduled'::subscription_status_enum,
+  'cancel_subscription cascade leaves a not-yet-due scheduled renewal untouched'
+);
+
+-- a partial payment must not activate the subscription; reuses the row the
+-- cascade just promoted to pending_payment as its target
+select public.record_payment(
+  (select id from public.subscriptions
+     where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
+     and start_date = current_date - 1),
+  50000,
+  'cash',
+  'partial payment'
+);
+
+select is(
+  (select status from public.subscriptions
+     where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
+     and start_date = current_date - 1),
+  'pending_payment'::subscription_status_enum,
+  'record_payment does not activate a subscription when amount paid is less than final_price'
 );
 
 select * from finish();
