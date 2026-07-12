@@ -54,12 +54,19 @@ on conflict do nothing;
 insert into public.clients (id, dni_type, dni_number, first_name, last_name, phone)
 values
   ('20000000-0000-0000-0000-000000000001', 'CC', '1000000001', 'Juan', 'Perez', '3001234567'),
-  ('20000000-0000-0000-0000-000000000002', 'CC', '1000000002', 'Maria', 'Gomez', null)
+  ('20000000-0000-0000-0000-000000000002', 'CC', '1000000002', 'Maria', 'Gomez', null),
+  -- Used by the dashboard e2e test: an active subscription that's both a
+  -- debtor (partial payment below leaves a positive balance) and expiring
+  -- soon (end_date within the dashboard's 7-day window), so the dashboard's
+  -- debtors/expiring-soon lists have a row to assert on instead of only
+  -- ever exercising their empty states.
+  ('20000000-0000-0000-0000-000000000003', 'CC', '1000000003', 'Carlos', 'Ramirez', null)
 on conflict (id) do nothing;
 
 insert into public.subscriptions (id, client_id, plan_id, start_date, end_date, status, base_price)
 values
-  ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', current_date - 10, current_date + 20, 'active', 100000)
+  ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', current_date - 10, current_date + 20, 'active', 100000),
+  ('30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', current_date - 20, current_date + 5, 'active', 100000)
 on conflict (id) do nothing;
 
 insert into public.bank_accounts (id, bank_code, account_type_code, account_number, account_holder_name, transfer_key)
@@ -75,4 +82,11 @@ on conflict do nothing;
 insert into public.payments (subscription_id, amount, payment_method, bank_account_id)
 values
   ('30000000-0000-0000-0000-000000000001', 40000, 'qr', '40000000-0000-0000-0000-000000000001')
+on conflict do nothing;
+
+-- Partial payment on Carlos Ramirez's subscription -- final_price (100000)
+-- minus this leaves a 50000 balance, making it a debtor row too.
+insert into public.payments (subscription_id, amount, payment_method)
+values
+  ('30000000-0000-0000-0000-000000000002', 50000, 'cash')
 on conflict do nothing;
