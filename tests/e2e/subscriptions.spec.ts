@@ -43,17 +43,10 @@ test("admin can enroll a client, record a full payment, and see it become active
   await page.getByLabel("Plan").click();
   await page.getByRole("option", { name: /Plan Mensual/ }).click();
 
-  // KNOWN APP BUG (not fixed here -- out of this file's scope, see
-  // tests/e2e/subscriptions.spec.ts task report): EnrollDialog's
-  // `todayIso()` defaults "Fecha de inicio" via
-  // `new Date().toISOString().split("T")[0]`, i.e. the *UTC* calendar
-  // date, while the DB's create_subscription/today_bogota() (migration
-  // 00000000000011) compares against the America/Bogota calendar date.
-  // Roughly 19:00-23:59 America/Bogota, UTC has already rolled to
-  // tomorrow, so the default silently picks tomorrow and the new
-  // subscription comes back "scheduled" instead of "pending_payment".
-  // Set it explicitly to the Bogota-local date so this test's outcome
-  // doesn't depend on wall-clock time when it happens to run.
+  // EnrollDialog now defaults "Fecha de inicio" to the Bogota-local date
+  // (fixed after this test originally caught it defaulting via UTC
+  // instead). Setting it explicitly here anyway keeps this assertion's
+  // outcome independent of that default regardless of wall-clock time.
   const bogotaToday = await page.evaluate(() =>
     new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" })
   );
