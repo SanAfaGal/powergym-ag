@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Topbar } from "@/components/layout/Topbar";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -24,11 +29,19 @@ export default async function DashboardLayout({
   if (!profile) redirect("/login");
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Topbar fullName={profile.full_name} isAdmin={profile.role === "admin"} />
-      <main className="flex-1 bg-secondary/50">
-        <div className="mx-auto max-w-6xl px-6 py-8 sm:px-8">{children}</div>
-      </main>
-    </div>
+    <SidebarProvider>
+      <AppSidebar
+        fullName={profile.full_name}
+        isAdmin={profile.role === "admin"}
+      />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+          <SidebarTrigger />
+        </header>
+        <div className="flex-1 bg-secondary/50">
+          <div className="mx-auto max-w-6xl px-6 py-8 sm:px-8">{children}</div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

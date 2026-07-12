@@ -99,7 +99,7 @@
   --chart-4: oklch(0.535 0.008 268.488);
   --chart-5: oklch(0.297 0.012 264.381);
   --radius: 0.625rem;
-  /* the shell (Topbar/future Sidebar) stays dark ink regardless of theme */
+  /* the shell (Sidebar) stays dark ink regardless of theme */
   --sidebar: oklch(0.209 0.009 264.373); /* ink */
   --sidebar-foreground: oklch(0.985 0.003 106.448); /* paper */
   --sidebar-primary: oklch(0.577 0.234 27.954);
