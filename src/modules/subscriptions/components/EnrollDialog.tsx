@@ -31,8 +31,15 @@ import { subscriptionSchema, type SubscriptionInput } from "../schema";
 import { createSubscription } from "../actions";
 import type { PlanOption } from "../queries";
 
+// UTC Date().toISOString() reads as tomorrow from ~19:00 Bogota onward,
+// which would default this field to a date create_subscription's own
+// today_bogota() comparison still considers "in the future" -- silently
+// landing the new subscription as scheduled instead of pending_payment.
+// en-CA formats as YYYY-MM-DD, matching the date input's expected value.
 function todayIso() {
-  return new Date().toISOString().split("T")[0];
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+  }).format(new Date());
 }
 
 function planLabel(plan: PlanOption) {
