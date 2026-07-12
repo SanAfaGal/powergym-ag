@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bogotaToday } from "@/lib/date/bogota";
 
 const DURATION_UNITS = ["day", "week", "month", "year"] as const;
 
@@ -63,10 +64,11 @@ export const priceSchema = z.object({
   price,
   valid_from: z.string().refine((v) => {
     if (!v) return false;
-    const chosen = new Date(v + "T00:00:00");
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return chosen >= today;
+    // Plain string comparison, not Date objects: both v (the date input's
+    // value) and bogotaToday() are YYYY-MM-DD, so lexicographic order
+    // matches chronological order -- and it sidesteps the browser's local
+    // timezone entirely, rather than assuming it happens to be Bogota's.
+    return v >= bogotaToday();
   }, "La fecha efectiva no puede ser en el pasado"),
 });
 export type PriceInput = z.infer<typeof priceSchema>;

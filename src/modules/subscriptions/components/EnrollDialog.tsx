@@ -30,17 +30,7 @@ import {
 import { subscriptionSchema, type SubscriptionInput } from "../schema";
 import { createSubscription } from "../actions";
 import type { PlanOption } from "../queries";
-
-// UTC Date().toISOString() reads as tomorrow from ~19:00 Bogota onward,
-// which would default this field to a date create_subscription's own
-// today_bogota() comparison still considers "in the future" -- silently
-// landing the new subscription as scheduled instead of pending_payment.
-// en-CA formats as YYYY-MM-DD, matching the date input's expected value.
-function todayIso() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota",
-  }).format(new Date());
-}
+import { bogotaToday } from "@/lib/date/bogota";
 
 function planLabel(plan: PlanOption) {
   return plan.price != null
@@ -61,7 +51,7 @@ export function EnrollDialog({
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<SubscriptionInput>({
     resolver: zodResolver(subscriptionSchema),
-    defaultValues: { plan_id: "", start_date: todayIso(), discount_percentage: 0 },
+    defaultValues: { plan_id: "", start_date: bogotaToday(), discount_percentage: 0 },
   });
 
   async function handleSubmit(values: SubscriptionInput) {
@@ -72,7 +62,7 @@ export function EnrollDialog({
       return;
     }
     setOpen(false);
-    form.reset({ plan_id: "", start_date: todayIso(), discount_percentage: 0 });
+    form.reset({ plan_id: "", start_date: bogotaToday(), discount_percentage: 0 });
   }
 
   return (

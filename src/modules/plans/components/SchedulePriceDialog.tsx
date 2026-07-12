@@ -23,10 +23,7 @@ import {
 } from "@/components/ui/form";
 import { priceSchema, type PriceInput } from "../schema";
 import { schedulePlanPrice } from "../actions";
-
-function todayIso() {
-  return new Date().toISOString().split("T")[0];
-}
+import { bogotaToday } from "@/lib/date/bogota";
 
 export function SchedulePriceDialog({
   planId,
@@ -39,7 +36,7 @@ export function SchedulePriceDialog({
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<PriceInput>({
     resolver: zodResolver(priceSchema),
-    defaultValues: { price: currentPrice ?? 0, valid_from: todayIso() },
+    defaultValues: { price: currentPrice ?? 0, valid_from: bogotaToday() },
   });
 
   async function handleSubmit(values: PriceInput) {
@@ -100,7 +97,7 @@ export function SchedulePriceDialog({
                 <FormItem>
                   <FormLabel>Fecha efectiva</FormLabel>
                   <FormControl>
-                    <Input type="date" min={todayIso()} {...field} />
+                    <Input type="date" min={bogotaToday()} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

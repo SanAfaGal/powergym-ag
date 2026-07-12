@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { PlanPrice } from "../queries";
 import { CancelScheduledPriceDialog } from "./CancelScheduledPriceDialog";
+import { bogotaToday } from "@/lib/date/bogota";
 
 function formatDate(d: string) {
   return new Date(`${d}T00:00:00`).toLocaleDateString("es-CO");
@@ -25,7 +26,7 @@ export function PriceHistory({
   currency: string;
   canManage: boolean;
 }) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = bogotaToday();
 
   // Mirror plan_price_at's own tiebreak (valid_from desc, created_at desc)
   // instead of a simpler "valid_until is null" check: a row can be open
