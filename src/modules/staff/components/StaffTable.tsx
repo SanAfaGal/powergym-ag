@@ -11,7 +11,13 @@ import { StaffRoleBadge } from "./StaffRoleBadge";
 import { StaffActions } from "./StaffActions";
 import type { StaffRow } from "../queries";
 
-export function StaffTable({ staff }: { staff: StaffRow[] }) {
+export function StaffTable({
+  staff,
+  currentUserId,
+}: {
+  staff: StaffRow[];
+  currentUserId: string;
+}) {
   return (
     <div className="hidden md:block">
       <Table>
@@ -38,7 +44,7 @@ export function StaffTable({ staff }: { staff: StaffRow[] }) {
                 <StatusBadge isActive={member.is_active} />
               </TableCell>
               <TableCell className="sticky right-0 flex justify-end gap-2 bg-card text-right">
-                <StaffActions staff={member} />
+                <StaffActions staff={member} currentUserId={currentUserId} />
               </TableCell>
             </TableRow>
           ))}

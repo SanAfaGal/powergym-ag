@@ -29,35 +29,67 @@ function createServiceRoleClient() {
   });
 }
 
+// Exact text of the "would remove the last active admin" guard raised by
+// set_staff_role/set_staff_active (migration 0021). Matched below so that
+// specific, actionable message reaches the admin verbatim, while any other
+// unexpected DB error (including the internal "only an admin can..." guard,
+// which should be unreachable given the page-level isActiveAdmin() redirect
+// in src/app/(dashboard)/staff/page.tsx) falls back to a generic message
+// instead of leaking raw Postgres error text to the UI.
+const LAST_ADMIN_ERROR_MESSAGE =
+  "No puedes remover al último administrador activo";
+
 export async function updateStaffRole(
   id: string,
   role: "admin" | "employee"
-): Promise<void> {
+): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = await createSupabaseClient();
 
-  // set_staff_role (migration 0010) is security definer and re-checks
-  // is_active_admin() internally -- no app-layer check needed here, same
-  // pattern as every other RPC-backed action in this codebase.
+  // set_staff_role (migration 0010, guarded further in migration 0021) is
+  // security definer and re-checks is_active_admin() + the last-active-admin
+  // invariant internally -- no app-layer check needed here, same pattern as
+  // every other RPC-backed action in this codebase.
   const { error } = await supabase.rpc("set_staff_role", {
     p_target: id,
     p_role: role,
   });
 
-  if (error) throw error;
+  if (error) {
+    return {
+      success: false,
+      error:
+        error.message === LAST_ADMIN_ERROR_MESSAGE
+          ? error.message
+          : "No se pudo cambiar el rol",
+    };
+  }
 
   revalidatePath("/staff");
+  return { success: true };
 }
 
-export async function setStaffActive(id: string, active: boolean): Promise<void> {
+export async function setStaffActive(
+  id: string,
+  active: boolean
+): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = await createSupabaseClient();
   const { error } = await supabase.rpc("set_staff_active", {
     p_target: id,
     p_active: active,
   });
 
-  if (error) throw error;
+  if (error) {
+    return {
+      success: false,
+      error:
+        error.message === LAST_ADMIN_ERROR_MESSAGE
+          ? error.message
+          : "No se pudo cambiar el estado del usuario",
+    };
+  }
 
   revalidatePath("/staff");
+  return { success: true };
 }
 
 export async function createStaff(

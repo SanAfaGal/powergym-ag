@@ -4,7 +4,13 @@ import { StaffRoleBadge } from "./StaffRoleBadge";
 import { StaffActions } from "./StaffActions";
 import type { StaffRow } from "../queries";
 
-export function StaffCards({ staff }: { staff: StaffRow[] }) {
+export function StaffCards({
+  staff,
+  currentUserId,
+}: {
+  staff: StaffRow[];
+  currentUserId: string;
+}) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {staff.map((member) => (
@@ -17,7 +23,7 @@ export function StaffCards({ staff }: { staff: StaffRow[] }) {
             <StaffRoleBadge role={member.role} />
           </div>
           <div className="mt-2">
-            <StaffActions staff={member} />
+            <StaffActions staff={member} currentUserId={currentUserId} />
           </div>
         </Card>
       ))}

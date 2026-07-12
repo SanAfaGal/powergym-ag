@@ -2,7 +2,13 @@ import { StaffTable } from "./StaffTable";
 import { StaffCards } from "./StaffCards";
 import type { StaffRow } from "../queries";
 
-export function StaffList({ staff }: { staff: StaffRow[] }) {
+export function StaffList({
+  staff,
+  currentUserId,
+}: {
+  staff: StaffRow[];
+  currentUserId: string;
+}) {
   if (staff.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
@@ -13,8 +19,8 @@ export function StaffList({ staff }: { staff: StaffRow[] }) {
 
   return (
     <>
-      <StaffTable staff={staff} />
-      <StaffCards staff={staff} />
+      <StaffTable staff={staff} currentUserId={currentUserId} />
+      <StaffCards staff={staff} currentUserId={currentUserId} />
     </>
   );
 }
