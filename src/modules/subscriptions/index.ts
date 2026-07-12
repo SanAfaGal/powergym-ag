@@ -25,3 +25,6 @@ export {
   cancelSubscription,
   renewSubscription,
 } from "./actions";
+export { SubscriptionStatusBadge } from "./components/SubscriptionStatusBadge";
+export { EnrollDialog } from "./components/EnrollDialog";
+export { RecordPaymentDialog } from "./components/RecordPaymentDialog";
