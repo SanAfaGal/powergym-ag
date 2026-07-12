@@ -9,6 +9,13 @@ import {
   EditClientDialog,
   DeactivateClientDialog,
 } from "@/modules/clients";
+import {
+  listClientSubscriptions,
+  listActivePlansWithPrice,
+  listPaymentTypes,
+  SubscriptionsSection,
+} from "@/modules/subscriptions";
+import { listActiveBankAccounts } from "@/modules/bank-accounts";
 
 function calculateAge(birthDate: string) {
   const birth = new Date(birthDate);
@@ -44,10 +51,15 @@ export default async function ClientDetailPage({
     notFound();
   }
 
-  const [documentTypes, genderTypes] = await Promise.all([
-    listDocumentTypes(),
-    listGenderTypes(),
-  ]);
+  const [documentTypes, genderTypes, subscriptions, plans, paymentTypes, bankAccounts] =
+    await Promise.all([
+      listDocumentTypes(),
+      listGenderTypes(),
+      listClientSubscriptions(id),
+      listActivePlansWithPrice(),
+      listPaymentTypes(),
+      listActiveBankAccounts(),
+    ]);
 
   const documentTypeName = client.dni_type
     ? (documentTypes.find((d) => d.code === client.dni_type)?.name ??
@@ -119,6 +131,14 @@ export default async function ClientDetailPage({
         />
         </dl>
       </Card>
+
+      <SubscriptionsSection
+        clientId={client.id}
+        subscriptions={subscriptions}
+        plans={plans}
+        paymentTypes={paymentTypes}
+        bankAccounts={bankAccounts}
+      />
     </div>
   );
 }
