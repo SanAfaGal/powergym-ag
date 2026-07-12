@@ -31,3 +31,5 @@ export { RecordPaymentDialog } from "./components/RecordPaymentDialog";
 export { CancelSubscriptionDialog } from "./components/CancelSubscriptionDialog";
 export { RenewSubscriptionDialog } from "./components/RenewSubscriptionDialog";
 export { SubscriptionsSection } from "./components/SubscriptionsSection";
+export { SubscriptionList } from "./components/SubscriptionList";
+export { SubscriptionFilters } from "./components/SubscriptionFilters";
