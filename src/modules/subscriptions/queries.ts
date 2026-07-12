@@ -1,0 +1,144 @@
+import { createClient } from "@/lib/supabase/server";
+
+export type SubscriptionStatus =
+  | "active"
+  | "expired"
+  | "pending_payment"
+  | "scheduled"
+  | "canceled";
+
+export type Subscription = {
+  id: string;
+  client_id: string;
+  plan_id: string;
+  start_date: string;
+  end_date: string;
+  status: SubscriptionStatus;
+  base_price: number;
+  discount_percentage: number | null;
+  final_price: number;
+  cancellation_date: string | null;
+  cancellation_reason: string | null;
+  created_at: string;
+};
+
+export type SubscriptionRow = Subscription & {
+  plan_name: string;
+  paid: number;
+  remaining: number;
+};
+
+export type GlobalSubscriptionRow = Subscription & {
+  plan_name: string;
+  client_name: string;
+  paid: number;
+  remaining: number;
+};
+
+export type PlanOption = { id: string; name: string; price: number | null };
+export type PaymentType = {
+  code: string;
+  name: string;
+  requires_bank_account: boolean;
+};
+export type CatalogEntry = { code: string; name: string };
+
+function sumPayments(payments: { amount: number }[] | null) {
+  return (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
+}
+
+export async function listClientSubscriptions(
+  clientId: string
+): Promise<SubscriptionRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("*, plans(name), payments(amount)")
+    .eq("client_id", clientId)
+    .order("start_date", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const { plans, payments, ...subscription } = row as Subscription & {
+      plans: { name: string } | null;
+      payments: { amount: number }[] | null;
+    };
+    const paid = sumPayments(payments);
+    return {
+      ...subscription,
+      plan_name: plans?.name ?? "",
+      paid,
+      remaining: Math.max(subscription.final_price - paid, 0),
+    };
+  });
+}
+
+export async function listSubscriptions(
+  filters: { status?: string } = {}
+): Promise<GlobalSubscriptionRow[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("subscriptions")
+    .select("*, plans(name), clients(first_name, last_name), payments(amount)")
+    .order("start_date", { ascending: false });
+
+  if (filters.status) query = query.eq("status", filters.status);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const { plans, clients, payments, ...subscription } = row as Subscription & {
+      plans: { name: string } | null;
+      clients: { first_name: string; last_name: string } | null;
+      payments: { amount: number }[] | null;
+    };
+    const paid = sumPayments(payments);
+    return {
+      ...subscription,
+      plan_name: plans?.name ?? "",
+      client_name: clients
+        ? `${clients.first_name} ${clients.last_name}`
+        : "",
+      paid,
+      remaining: Math.max(subscription.final_price - paid, 0),
+    };
+  });
+}
+
+export async function listActivePlansWithPrice(): Promise<PlanOption[]> {
+  const supabase = await createClient();
+  const { data: plans, error } = await supabase
+    .from("plans")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name");
+
+  if (error) throw error;
+
+  return Promise.all(
+    (plans ?? []).map(async (plan) => {
+      const { data: price } = await supabase.rpc("plan_price_at", {
+        p_plan_id: plan.id,
+      });
+      return {
+        id: plan.id as string,
+        name: plan.name as string,
+        price: (price as number | null) ?? null,
+      };
+    })
+  );
+}
+
+export async function listPaymentTypes(): Promise<PaymentType[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("payment_types")
+    .select("code, name, requires_bank_account")
+    .eq("is_active", true)
+    .order("name");
+
+  if (error) throw error;
+  return (data ?? []) as PaymentType[];
+}
