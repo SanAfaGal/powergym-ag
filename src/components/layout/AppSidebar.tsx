@@ -11,6 +11,7 @@ import {
   Moon,
   Receipt,
   Sun,
+  UserCog,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,11 +35,18 @@ const NAV_LINKS = [
   { href: "/subscriptions", label: "Suscripciones", icon: Receipt },
 ];
 
-const ADMIN_NAV_LINK = {
-  href: "/bank-accounts",
-  label: "Cuentas bancarias",
-  icon: Landmark,
-};
+const ADMIN_NAV_LINKS = [
+  {
+    href: "/bank-accounts",
+    label: "Cuentas bancarias",
+    icon: Landmark,
+  },
+  {
+    href: "/staff",
+    label: "Staff",
+    icon: UserCog,
+  },
+];
 
 export function AppSidebar({
   fullName,
@@ -48,7 +56,7 @@ export function AppSidebar({
   isAdmin: boolean;
 }) {
   const pathname = usePathname();
-  const links = isAdmin ? [...NAV_LINKS, ADMIN_NAV_LINK] : NAV_LINKS;
+  const links = isAdmin ? [...NAV_LINKS, ...ADMIN_NAV_LINKS] : NAV_LINKS;
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
