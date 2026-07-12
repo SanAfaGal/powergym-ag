@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,26 @@ export function RecordPaymentDialog({
     paymentTypes.find((t) => t.code === selectedMethod)
       ?.requires_bank_account ?? false;
 
+  // react-hook-form's defaultValues are only read once, at mount -- if a
+  // staff member records a partial payment and reopens this same dialog
+  // instance without navigating away, the mount-time `remaining` is stale
+  // (record_payment's revalidatePath refresh lands asynchronously, after
+  // this component's initial render). Re-syncing on every open, against
+  // whatever `remaining` prop is current at that moment, avoids prefilling
+  // a stale higher amount that could be submitted as an accidental
+  // overpayment.
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        amount: remaining,
+        payment_method: "",
+        bank_account_id: "",
+        notes: "",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, remaining]);
+
   async function handleSubmit(values: PaymentInput) {
     setServerError(null);
     if (requiresBankAccount && !values.bank_account_id) {
@@ -79,12 +99,6 @@ export function RecordPaymentDialog({
       return;
     }
     setOpen(false);
-    form.reset({
-      amount: remaining,
-      payment_method: "",
-      bank_account_id: "",
-      notes: "",
-    });
   }
 
   return (
