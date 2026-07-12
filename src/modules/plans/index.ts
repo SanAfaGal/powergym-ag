@@ -11,12 +11,12 @@ export {
   getPlan,
   getPriceHistory,
   currentPriceFor,
-  isAdmin,
   DURATION_UNIT_LABELS,
   type Plan,
   type PlanPrice,
   type DurationUnit,
 } from "./queries";
+export { isActiveAdmin as isAdmin } from "@/lib/auth/roles";
 export {
   createPlan,
   updatePlan,
