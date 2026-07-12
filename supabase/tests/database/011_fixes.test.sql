@@ -12,7 +12,7 @@ select tests.create_plan('Fix Plan', 100000, 'month', 1);
 select public.create_subscription(
   (select id from public.clients where dni_number = 'FIX-CLIENT-1'),
   (select id from public.plans where name = 'Fix Plan'),
-  current_date, 0
+  public.today_bogota(), 0
 );
 select public.record_payment(
   (select id from public.subscriptions where client_id = (select id from public.clients where dni_number = 'FIX-CLIENT-1')),
@@ -27,7 +27,7 @@ select public.record_payment(
 );
 
 update public.subscriptions
-set start_date = current_date - 1
+set start_date = public.today_bogota() - 1
 where client_id = (select id from public.clients where dni_number = 'FIX-CLIENT-1') and status = 'scheduled';
 
 update public.subscriptions

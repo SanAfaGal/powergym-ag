@@ -88,7 +88,7 @@ select is(
   (select status from public.create_subscription(
     (select id from public.clients where dni_number = 'RPC-CLIENT-1'),
     (select id from public.plans where name = 'RPC Plan'),
-    current_date,
+    public.today_bogota(),
     0
   )),
   'pending_payment',
@@ -126,7 +126,7 @@ select throws_ok(
   $$ select public.create_subscription(
        (select id from public.clients where dni_number = 'RPC-CLIENT-1'),
        (select id from public.plans where name = 'RPC Plan'),
-       current_date, 0
+       public.today_bogota(), 0
      ) $$,
   'P0001',
   null,
@@ -152,8 +152,8 @@ insert into public.subscriptions (
 ) values (
   (select id from public.clients where dni_number = 'RPC-CLIENT-1'),
   (select id from public.plans where name = 'RPC Plan'),
-  current_date - 1,
-  current_date + 29,
+  public.today_bogota() - 1,
+  public.today_bogota() + 29,
   'scheduled',
   100000,
   0,
@@ -175,7 +175,7 @@ select is(
 select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
-     and start_date = current_date - 1),
+     and start_date = public.today_bogota() - 1),
   'pending_payment',
   'cancel_subscription promotes the due scheduled renewal to pending_payment'
 );
@@ -185,7 +185,7 @@ select is(
 select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
-     and start_date > current_date),
+     and start_date > public.today_bogota()),
   'scheduled',
   'cancel_subscription cascade leaves a not-yet-due scheduled renewal untouched'
 );
@@ -195,7 +195,7 @@ select is(
 select public.record_payment(
   (select id from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
-     and start_date = current_date - 1),
+     and start_date = public.today_bogota() - 1),
   50000,
   'cash',
   'partial payment'
@@ -204,7 +204,7 @@ select public.record_payment(
 select is(
   (select status from public.subscriptions
      where client_id = (select id from public.clients where dni_number = 'RPC-CLIENT-1')
-     and start_date = current_date - 1),
+     and start_date = public.today_bogota() - 1),
   'pending_payment',
   'record_payment does not activate a subscription when amount paid is less than final_price'
 );

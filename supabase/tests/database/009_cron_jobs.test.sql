@@ -34,13 +34,13 @@ insert into public.subscriptions (client_id, plan_id, start_date, end_date, stat
 values (
   (select id from public.clients where dni_number = 'CRON-CLIENT-1'),
   (select id from public.plans where name = 'Cron Plan'),
-  current_date - 60, current_date - 1, 'active', 50000
+  public.today_bogota() - 60, public.today_bogota() - 1, 'active', 50000
 );
 insert into public.subscriptions (client_id, plan_id, start_date, end_date, status, base_price)
 values (
   (select id from public.clients where dni_number = 'CRON-CLIENT-2'),
   (select id from public.plans where name = 'Cron Plan'),
-  current_date, current_date + 30, 'scheduled', 50000
+  public.today_bogota(), public.today_bogota() + 30, 'scheduled', 50000
 );
 
 select is(public.expire_subscriptions(), 1, 'expire_subscriptions expires exactly the one overdue active subscription');

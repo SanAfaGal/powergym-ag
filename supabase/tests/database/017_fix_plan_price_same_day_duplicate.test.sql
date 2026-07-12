@@ -35,7 +35,7 @@ select is(
   (select valid_until from public.plan_prices
      where plan_id = (select id from public.plans where name = 'Same Day Plan')
      and price = 100000),
-  current_date,
+  public.today_bogota(),
   'the original row is closed on the same day the correction takes over (a one-day boundary overlap)'
 );
 select is(
