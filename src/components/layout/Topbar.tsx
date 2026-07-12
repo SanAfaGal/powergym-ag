@@ -6,9 +6,20 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "Inicio" },
   { href: "/clients", label: "Clientes" },
   { href: "/plans", label: "Planes" },
+  { href: "/subscriptions", label: "Suscripciones" },
 ];
 
-export function Topbar({ fullName }: { fullName: string }) {
+export function Topbar({
+  fullName,
+  isAdmin,
+}: {
+  fullName: string;
+  isAdmin: boolean;
+}) {
+  const links = isAdmin
+    ? [...NAV_LINKS, { href: "/bank-accounts", label: "Cuentas bancarias" }]
+    : NAV_LINKS;
+
   return (
     <header className="flex h-14 items-center justify-between gap-4 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground">
       <div className="flex items-center gap-6">
@@ -16,7 +27,7 @@ export function Topbar({ fullName }: { fullName: string }) {
           POWER<span className="text-primary">GYM</span>
         </span>
         <nav className="flex items-center gap-4">
-          {NAV_LINKS.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}

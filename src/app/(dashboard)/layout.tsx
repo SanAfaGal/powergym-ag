@@ -17,7 +17,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, role")
     .eq("id", user.id)
     .single();
 
@@ -25,7 +25,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Topbar fullName={profile.full_name} />
+      <Topbar fullName={profile.full_name} isAdmin={profile.role === "admin"} />
       <main className="flex-1 bg-secondary/50">
         <div className="mx-auto max-w-6xl px-6 py-8 sm:px-8">{children}</div>
       </main>
