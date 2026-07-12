@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   CreditCard,
   Landmark,
   LayoutDashboard,
   LogOut,
+  Moon,
   Receipt,
+  Sun,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +49,8 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const links = isAdmin ? [...NAV_LINKS, ADMIN_NAV_LINK] : NAV_LINKS;
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   return (
     <Sidebar>
@@ -84,17 +89,30 @@ export function AppSidebar({
           <span className="truncate text-sm text-sidebar-foreground/70">
             {fullName}
           </span>
-          <form action={signOut}>
+          <div className="flex items-center gap-2">
             <Button
-              type="submit"
+              type="button"
               variant="outline"
-              size="sm"
+              size="icon-sm"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              aria-label="Cambiar tema claro u oscuro"
               className="border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
-              <LogOut />
-              Cerrar sesión
+              <Sun className="dark:hidden" />
+              <Moon className="hidden dark:block" />
             </Button>
-          </form>
+            <form action={signOut}>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
+                <LogOut />
+                Cerrar sesión
+              </Button>
+            </form>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
