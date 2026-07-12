@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -9,8 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { updateStaffRole, setStaffActive } from "../actions";
+import { updateStaffRole } from "../actions";
 import type { StaffRow } from "../queries";
+import { DeactivateStaffDialog } from "./DeactivateStaffDialog";
 
 const ROLE_LABELS: Record<StaffRow["role"], string> = {
   admin: "Administrador",
@@ -19,19 +19,12 @@ const ROLE_LABELS: Record<StaffRow["role"], string> = {
 
 export function StaffActions({ staff }: { staff: StaffRow }) {
   const [isRolePending, startRoleTransition] = useTransition();
-  const [isActivePending, startActiveTransition] = useTransition();
 
   function handleRoleChange(value: string | null) {
     if (value !== "admin" && value !== "employee") return;
     if (value === staff.role) return;
     startRoleTransition(async () => {
       await updateStaffRole(staff.id, value);
-    });
-  }
-
-  function handleToggleActive() {
-    startActiveTransition(async () => {
-      await setStaffActive(staff.id, !staff.is_active);
     });
   }
 
@@ -52,19 +45,11 @@ export function StaffActions({ staff }: { staff: StaffRow }) {
           <SelectItem value="admin">Administrador</SelectItem>
         </SelectContent>
       </Select>
-      <Button
-        type="button"
-        variant={staff.is_active ? "destructive" : "outline"}
-        size="sm"
-        onClick={handleToggleActive}
-        disabled={isActivePending}
-      >
-        {isActivePending
-          ? "Guardando..."
-          : staff.is_active
-            ? "Desactivar"
-            : "Activar"}
-      </Button>
+      <DeactivateStaffDialog
+        staffId={staff.id}
+        staffName={staff.full_name}
+        isActive={staff.is_active}
+      />
     </div>
   );
 }
