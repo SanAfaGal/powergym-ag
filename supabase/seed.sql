@@ -37,10 +37,18 @@ values
   ('10000000-0000-0000-0000-000000000002', 'Plan Trimestral', 'month', 3)
 on conflict (id) do nothing;
 
-insert into public.plan_prices (plan_id, price)
+-- valid_from is explicit (rather than relying on the column's
+-- `default current_date`) because that default resolves against the DB
+-- session's timezone (UTC), not the app's America/Bogota "business today"
+-- (today_bogota(), migration 00000000000011). Near/after 19:00 Bogota
+-- time, UTC's current_date has already rolled to tomorrow, which would
+-- leave these prices not yet effective for a subscription started "today"
+-- in Bogota and create_subscription would fail with "plan % has no price
+-- effective on %".
+insert into public.plan_prices (plan_id, price, valid_from)
 values
-  ('10000000-0000-0000-0000-000000000001', 100000),
-  ('10000000-0000-0000-0000-000000000002', 270000)
+  ('10000000-0000-0000-0000-000000000001', 100000, '2020-01-01'),
+  ('10000000-0000-0000-0000-000000000002', 270000, '2020-01-01')
 on conflict do nothing;
 
 insert into public.clients (id, dni_type, dni_number, first_name, last_name, phone)
