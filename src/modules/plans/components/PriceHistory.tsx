@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { PlanPrice } from "../queries";
 import { CancelScheduledPriceDialog } from "./CancelScheduledPriceDialog";
@@ -13,6 +14,16 @@ import { bogotaToday } from "@/lib/date/bogota";
 
 function formatDate(d: string) {
   return new Date(`${d}T00:00:00`).toLocaleDateString("es-CO");
+}
+
+function priceStatusBadge(isCurrent: boolean, isFuture: boolean) {
+  if (isCurrent) {
+    return <Badge className="bg-success/10 text-success">Vigente</Badge>;
+  }
+  if (isFuture) {
+    return <Badge className="bg-warning/10 text-warning">Programado</Badge>;
+  }
+  return <Badge className="bg-muted text-muted-foreground">Anterior</Badge>;
 }
 
 export function PriceHistory({
@@ -46,65 +57,82 @@ export function PriceHistory({
     )[0]?.id;
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Precio</TableHead>
-          <TableHead>Vigente desde</TableHead>
-          <TableHead>Vigente hasta</TableHead>
-          <TableHead>Estado</TableHead>
-          {canManage && <TableHead className="text-right">Acciones</TableHead>}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <>
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Precio</TableHead>
+              <TableHead>Vigente desde</TableHead>
+              <TableHead>Vigente hasta</TableHead>
+              <TableHead>Estado</TableHead>
+              {canManage && (
+                <TableHead className="text-right">Acciones</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {prices.map((p) => {
+              const isFuture = p.valid_from > today;
+              const isCurrent = p.id === currentId;
+              return (
+                <TableRow key={p.id}>
+                  <TableCell className="tabular-nums font-medium">
+                    ${p.price.toLocaleString("es-CO")} {currency}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {formatDate(p.valid_from)}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {p.valid_until ? formatDate(p.valid_until) : "—"}
+                  </TableCell>
+                  <TableCell>{priceStatusBadge(isCurrent, isFuture)}</TableCell>
+                  {canManage && (
+                    <TableCell className="text-right">
+                      {isFuture && (
+                        <CancelScheduledPriceDialog
+                          planId={planId}
+                          priceId={p.id}
+                        />
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex flex-col gap-3 md:hidden">
         {prices.map((p) => {
           const isFuture = p.valid_from > today;
           const isCurrent = p.id === currentId;
           return (
-            <TableRow key={p.id}>
-              <TableCell className="tabular-nums font-medium">
-                ${p.price.toLocaleString("es-CO")} {currency}
-              </TableCell>
-              <TableCell className="tabular-nums">
-                {formatDate(p.valid_from)}
-              </TableCell>
-              <TableCell className="tabular-nums">
-                {p.valid_until ? formatDate(p.valid_until) : "—"}
-              </TableCell>
-              <TableCell>
-                {isCurrent && (
-                  <Badge
-                    variant="outline"
-                    className="border-success/30 bg-success/10 text-success"
-                  >
-                    Vigente
-                  </Badge>
-                )}
-                {isFuture && (
-                  <Badge
-                    variant="outline"
-                    className="border-warning/30 bg-warning/10 text-warning-foreground"
-                  >
-                    Programado
-                  </Badge>
-                )}
-                {!isCurrent && !isFuture && (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    Anterior
-                  </Badge>
-                )}
-              </TableCell>
-              {canManage && (
-                <TableCell className="text-right">
-                  {isFuture && (
-                    <CancelScheduledPriceDialog planId={planId} priceId={p.id} />
-                  )}
-                </TableCell>
+            <Card key={p.id} className="gap-2 bg-secondary/40 px-4 py-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="tabular-nums font-medium">
+                  ${p.price.toLocaleString("es-CO")} {currency}
+                </span>
+                {priceStatusBadge(isCurrent, isFuture)}
+              </div>
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                <span className="tabular-nums">
+                  Desde {formatDate(p.valid_from)}
+                </span>
+                <span className="tabular-nums">
+                  Hasta {p.valid_until ? formatDate(p.valid_until) : "—"}
+                </span>
+              </div>
+              {canManage && isFuture && (
+                <div className="pt-1">
+                  <CancelScheduledPriceDialog planId={planId} priceId={p.id} />
+                </div>
               )}
-            </TableRow>
+            </Card>
           );
         })}
-      </TableBody>
-    </Table>
+      </div>
+    </>
   );
 }
