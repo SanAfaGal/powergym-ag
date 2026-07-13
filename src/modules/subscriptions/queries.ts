@@ -22,10 +22,20 @@ export type Subscription = {
   created_at: string;
 };
 
+export type SubscriptionPayment = {
+  id: string;
+  amount: number;
+  payment_method: string;
+  payment_date: string;
+  notes: string | null;
+  bank_account_id: string | null;
+};
+
 export type SubscriptionRow = Subscription & {
   plan_name: string;
   paid: number;
   remaining: number;
+  payments: SubscriptionPayment[];
 };
 
 export type GlobalSubscriptionRow = Subscription & {
@@ -53,7 +63,9 @@ export async function listClientSubscriptions(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("*, plans(name), payments(amount)")
+    .select(
+      "*, plans(name), payments(id, amount, payment_method, payment_date, notes, bank_account_id)"
+    )
     .eq("client_id", clientId)
     .order("start_date", { ascending: false });
 
@@ -62,14 +74,19 @@ export async function listClientSubscriptions(
   return (data ?? []).map((row) => {
     const { plans, payments, ...subscription } = row as Subscription & {
       plans: { name: string } | null;
-      payments: { amount: number }[] | null;
+      payments: SubscriptionPayment[] | null;
     };
     const paid = sumPayments(payments);
+    const sortedPayments = [...(payments ?? [])].sort(
+      (a, b) =>
+        new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
+    );
     return {
       ...subscription,
       plan_name: plans?.name ?? "",
       paid,
       remaining: Math.max(subscription.final_price - paid, 0),
+      payments: sortedPayments,
     };
   });
 }

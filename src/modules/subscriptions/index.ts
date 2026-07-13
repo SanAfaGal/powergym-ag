@@ -14,6 +14,7 @@ export {
   type Subscription,
   type SubscriptionStatus,
   type SubscriptionRow,
+  type SubscriptionPayment,
   type GlobalSubscriptionRow,
   type PlanOption,
   type PaymentType,
