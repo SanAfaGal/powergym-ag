@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { SegmentedFilter } from "@/components/shared/SegmentedFilter";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todas" },
@@ -25,22 +25,6 @@ export function SubscriptionFilters({ status }: { status: string }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {STATUS_OPTIONS.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => setStatus(opt.value)}
-          className={cn(
-            "rounded-full px-3 py-1 text-sm transition-colors",
-            status === opt.value
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted"
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedFilter options={STATUS_OPTIONS} value={status} onChange={setStatus} />
   );
 }

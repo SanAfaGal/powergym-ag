@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { SegmentedFilter } from "@/components/shared/SegmentedFilter";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos" },
@@ -51,25 +51,9 @@ export function ClientFilters({
         placeholder="Buscar por nombre o documento..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="sm:max-w-xs"
+        className="flex-1"
       />
-      <div className="flex gap-1">
-        {STATUS_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setStatus(opt.value)}
-            className={cn(
-              "rounded-full px-3 py-1 text-sm transition-colors",
-              status === opt.value
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedFilter options={STATUS_OPTIONS} value={status} onChange={setStatus} />
     </div>
   );
 }
