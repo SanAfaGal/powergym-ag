@@ -85,6 +85,12 @@ export function RecordPaymentDialog({
 
   async function handleSubmit(values: PaymentInput) {
     setServerError(null);
+    if (values.amount > remaining) {
+      form.setError("amount", {
+        message: `No puede superar el saldo pendiente ($${remaining.toLocaleString("es-CO")})`,
+      });
+      return;
+    }
     if (requiresBankAccount && !values.bank_account_id) {
       form.setError("bank_account_id", {
         message: "Seleccioná la cuenta que recibió el pago",

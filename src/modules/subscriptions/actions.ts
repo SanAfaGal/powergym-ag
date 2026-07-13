@@ -13,6 +13,16 @@ import {
 
 const OPEN_STATUSES = ["active", "pending_payment", "scheduled"];
 
+// Exact text of record_payment's two guards (migration 0022) -- matched
+// below so these specific, actionable messages reach the staff member
+// verbatim, while any other unexpected DB error falls back to a generic
+// message instead of leaking raw Postgres error text to the UI. Same
+// pattern as LAST_ADMIN_ERROR_MESSAGE in modules/staff/actions.ts.
+const PAYMENT_OVERPAYMENT_ERROR_MESSAGE =
+  "El monto supera el saldo pendiente de la suscripción";
+const PAYMENT_INVALID_STATUS_ERROR_MESSAGE =
+  "Esta suscripción no puede recibir pagos en su estado actual";
+
 export async function createSubscription(
   clientId: string,
   values: SubscriptionInput
@@ -83,7 +93,13 @@ export async function recordPayment(
   });
 
   if (error) {
-    return { error: "No se pudo registrar el pago" };
+    return {
+      error:
+        error.message === PAYMENT_OVERPAYMENT_ERROR_MESSAGE ||
+        error.message === PAYMENT_INVALID_STATUS_ERROR_MESSAGE
+          ? error.message
+          : "No se pudo registrar el pago",
+    };
   }
 
   revalidatePath("/subscriptions");
