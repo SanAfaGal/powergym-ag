@@ -23,6 +23,27 @@ const PAYMENT_OVERPAYMENT_ERROR_MESSAGE =
 const PAYMENT_INVALID_STATUS_ERROR_MESSAGE =
   "Esta suscripción no puede recibir pagos en su estado actual";
 
+// Same pattern, for create_subscription/renew_subscription's guards
+// (migration 0027). The "no price effective" message interpolates the
+// actual date Postgres rejected, so it's matched by prefix rather than an
+// exact constant.
+const SUBSCRIPTION_PLAN_INACTIVE_ERROR_MESSAGE =
+  "El plan seleccionado no existe o está inactivo";
+const SUBSCRIPTION_ALREADY_ACTIVE_ERROR_MESSAGE =
+  "El cliente ya tiene una suscripción activa";
+const SUBSCRIPTION_NO_PRICE_ERROR_PREFIX =
+  "El plan no tiene un precio vigente para la fecha de";
+const SUBSCRIPTION_NOT_FOUND_ERROR_MESSAGE = "La suscripción no existe";
+
+function subscriptionRpcErrorMessage(message: string, fallback: string) {
+  return message === SUBSCRIPTION_PLAN_INACTIVE_ERROR_MESSAGE ||
+    message === SUBSCRIPTION_ALREADY_ACTIVE_ERROR_MESSAGE ||
+    message === SUBSCRIPTION_NOT_FOUND_ERROR_MESSAGE ||
+    message.startsWith(SUBSCRIPTION_NO_PRICE_ERROR_PREFIX)
+    ? message
+    : fallback;
+}
+
 export async function createSubscription(
   clientId: string,
   values: SubscriptionInput
@@ -80,7 +101,12 @@ export async function createSubscription(
   });
 
   if (error) {
-    return { error: "No se pudo crear la suscripción" };
+    return {
+      error: subscriptionRpcErrorMessage(
+        error.message,
+        "No se pudo crear la suscripción"
+      ),
+    };
   }
 
   revalidatePath("/subscriptions");
@@ -172,7 +198,12 @@ export async function renewSubscription(
   });
 
   if (error) {
-    return { error: "No se pudo renovar la suscripción" };
+    return {
+      error: subscriptionRpcErrorMessage(
+        error.message,
+        "No se pudo renovar la suscripción"
+      ),
+    };
   }
 
   revalidatePath("/subscriptions");
