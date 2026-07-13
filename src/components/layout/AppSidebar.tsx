@@ -25,6 +25,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/modules/auth";
 
@@ -61,16 +62,19 @@ export function AppSidebar({
   const isDark = resolvedTheme === "dark";
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <span className="flex h-8 items-center px-2 font-heading text-lg font-bold tracking-tight">
-          POWER<span className="text-primary">GYM</span>
-        </span>
+    <Sidebar variant="floating" collapsible="icon">
+      <SidebarHeader className="p-3">
+        <div className="flex h-8 items-center justify-between group-data-[collapsible=icon]:justify-center">
+          <span className="font-heading text-lg font-bold tracking-tight group-data-[collapsible=icon]:hidden">
+            POWER<span className="text-primary">GYM</span>
+          </span>
+          <SidebarTrigger />
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="p-3">
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {links.map((link) => {
                 const isActive =
                   pathname === link.href ||
@@ -92,12 +96,17 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <div className="flex items-center justify-between gap-2 px-1 py-1">
-          <span className="truncate text-sm text-sidebar-foreground/70">
-            {fullName}
-          </span>
-          <div className="flex items-center gap-2">
+      <SidebarFooter className="p-3">
+        <div className="flex flex-col gap-2 px-1 py-1">
+          <div className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-sm font-medium text-sidebar-foreground">
+              {fullName}
+            </span>
+            <span className="text-xs text-sidebar-foreground/60">
+              {isAdmin ? "Administrador" : "Empleado"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
             <Button
               type="button"
               variant="outline"
@@ -109,15 +118,18 @@ export function AppSidebar({
               <Sun className="dark:hidden" />
               <Moon className="hidden dark:block" />
             </Button>
-            <form action={signOut}>
+            <form action={signOut} className="flex-1 group-data-[collapsible=icon]:w-full">
               <Button
                 type="submit"
                 variant="outline"
                 size="sm"
-                className="border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                className="w-full border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-7 group-data-[collapsible=icon]:p-0"
+                aria-label="Cerrar sesión"
               >
                 <LogOut />
-                Cerrar sesión
+                <span className="group-data-[collapsible=icon]:hidden">
+                  Cerrar sesión
+                </span>
               </Button>
             </form>
           </div>

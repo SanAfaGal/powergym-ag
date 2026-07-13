@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import logo from "@/app/logo.svg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,16 +33,17 @@ export function LoginForm({ inactiveAccount }: { inactiveAccount?: boolean }) {
   }
 
   return (
-    <div className="w-full max-w-sm overflow-hidden rounded-lg bg-sidebar text-sidebar-foreground ring-1 ring-sidebar-border">
-      <div className="border-b border-sidebar-border px-6 py-5">
-        <span className="font-heading text-2xl font-bold tracking-tight">
-          POWER<span className="text-primary">GYM</span>
-        </span>
-        <p className="mt-1 text-sm text-sidebar-foreground/60">
-          Acceso de staff
+    <div className="w-full max-w-sm">
+      <div className="mb-8 text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element -- static
+            logo import, not worth next/image's optimization pipeline */}
+        <img src={logo.src} alt="PowerGym" className="mx-auto h-32 w-auto" />
+        <p className="mt-1 text-sm text-muted-foreground">
+          Panel de administración
         </p>
       </div>
-      <div className="bg-card px-6 py-6 text-card-foreground">
+
+      <div className="rounded-lg bg-card p-6 text-card-foreground shadow-[var(--shadow-md)] sm:p-8">
         {inactiveAccount && (
           <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             Tu cuenta fue desactivada. Contactá a un administrador.
@@ -88,7 +90,7 @@ export function LoginForm({ inactiveAccount }: { inactiveAccount?: boolean }) {
             )}
             <Button
               type="submit"
-              className="w-full"
+              className="mt-2 w-full"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? "Ingresando..." : "Ingresar"}
@@ -96,6 +98,11 @@ export function LoginForm({ inactiveAccount }: { inactiveAccount?: boolean }) {
           </form>
         </Form>
       </div>
+
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        Las cuentas se crean fuera de la app. No hay registro ni recuperación
+        de contraseña.
+      </p>
     </div>
   );
 }

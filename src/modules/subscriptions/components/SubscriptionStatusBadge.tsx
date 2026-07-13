@@ -15,11 +15,11 @@ const STATUS_LABELS: Record<SubscriptionStatus, string> = {
 };
 
 const STATUS_STYLES: Record<SubscriptionStatus, string> = {
-  active: "border-success/30 bg-success/10 text-success",
-  pending_payment: "border-warning/30 bg-warning/10 text-warning-foreground",
-  scheduled: "border-warning/30 bg-warning/10 text-warning-foreground",
-  expired: "text-muted-foreground",
-  canceled: "border-destructive/30 bg-destructive/10 text-destructive",
+  active: "bg-success/10 text-success",
+  pending_payment: "bg-warning/10 text-warning",
+  scheduled: "bg-warning/10 text-warning",
+  expired: "bg-muted text-muted-foreground",
+  canceled: "bg-destructive/10 text-destructive",
 };
 
 export function SubscriptionStatusBadge({
@@ -28,8 +28,6 @@ export function SubscriptionStatusBadge({
   status: SubscriptionStatus;
 }) {
   return (
-    <Badge variant="outline" className={STATUS_STYLES[status]}>
-      {STATUS_LABELS[status]}
-    </Badge>
+    <Badge className={STATUS_STYLES[status]}>{STATUS_LABELS[status]}</Badge>
   );
 }
