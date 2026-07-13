@@ -1,6 +1,8 @@
 // PowerGym AG — database schema (DBML)
-// Generated from supabase/migrations/ through 00000000000013_plan_price_history.sql.
-// Not auto-synced: regenerate by hand (or with a script) after schema-changing migrations.
+// Generated from supabase/migrations/ through 00000000000028_plan_create_valid_from.sql.
+// Not auto-synced: update by hand whenever a migration adds/drops/renames a
+// table or column (function-only migrations, RLS policies, and RPC
+// signature changes don't require an update here).
 // View at https://dbdiagram.io (paste this file) or any DBML-compatible tool.
 
 Enum app_role {
