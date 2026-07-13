@@ -40,12 +40,22 @@ const price = z
   .positive("El precio tiene que ser mayor a 0")
   .multipleOf(0.01, "El precio admite hasta 2 decimales");
 
+// Unlike priceSchema's valid_from (scheduling a change to an ALREADY
+// effective price, so it can only move forward), a brand-new plan has no
+// existing price history to protect -- staff can backdate this to when the
+// plan actually started being offered (e.g. digitizing a plan that's been
+// informally running for a while) or push it into the future.
+const validFrom = z
+  .string()
+  .min(1, "Seleccioná desde cuándo rige el plan");
+
 export const planSchema = z.object({
   name,
   description,
   duration_unit: durationUnit,
   duration_count: durationCount,
   price,
+  valid_from: validFrom,
 });
 export type PlanInput = z.infer<typeof planSchema>;
 

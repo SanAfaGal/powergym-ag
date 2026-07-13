@@ -28,6 +28,7 @@ export async function createPlan(
       p_duration_unit: parsed.data.duration_unit,
       p_duration_count: parsed.data.duration_count,
       p_description: parsed.data.description || null,
+      p_valid_from: parsed.data.valid_from,
     })
     .select("id")
     .single();
