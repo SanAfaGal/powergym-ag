@@ -1,12 +1,10 @@
 import { addDays, format } from "date-fns";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { SubscriptionStatusBadge } from "./SubscriptionStatusBadge";
 import { EnrollDialog } from "./EnrollDialog";
 import { RecordPaymentDialog } from "./RecordPaymentDialog";
@@ -24,18 +22,28 @@ function formatDate(d: string) {
   return new Date(`${d}T00:00:00`).toLocaleDateString("es-CO");
 }
 
+function formatDateTime(d: string) {
+  return new Date(d).toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function SubscriptionsSection({
   clientId,
   subscriptions,
   plans,
   paymentTypes,
   bankAccounts,
+  allBankAccounts,
 }: {
   clientId: string;
   subscriptions: SubscriptionRow[];
   plans: PlanOption[];
   paymentTypes: PaymentType[];
   bankAccounts: BankAccount[];
+  allBankAccounts: BankAccount[];
 }) {
   const hasOpenSubscription = subscriptions.some((s) =>
     OPEN_STATUSES.includes(s.status)
@@ -65,70 +73,121 @@ export function SubscriptionsSection({
           Todavía no tiene suscripciones
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Plan</TableHead>
-              <TableHead>Período</TableHead>
-              <TableHead>Precio final</TableHead>
-              <TableHead>Saldo pendiente</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {subscriptions.map((sub) => (
-              <TableRow key={sub.id}>
-                <TableCell className="font-medium">{sub.plan_name}</TableCell>
-                <TableCell className="tabular-nums">
-                  {formatDate(sub.start_date)} – {formatDate(sub.end_date)}
-                </TableCell>
-                <TableCell className="tabular-nums">
-                  ${sub.final_price.toLocaleString("es-CO")}
-                </TableCell>
-                <TableCell className="tabular-nums">
-                  {sub.remaining > 0
-                    ? `$${sub.remaining.toLocaleString("es-CO")}`
-                    : "—"}
-                </TableCell>
-                <TableCell>
-                  <SubscriptionStatusBadge status={sub.status} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    {PAYABLE_STATUSES.includes(sub.status) &&
-                      sub.remaining > 0 && (
-                        <RecordPaymentDialog
-                          subscriptionId={sub.id}
-                          clientId={clientId}
-                          remaining={sub.remaining}
-                          paymentTypes={paymentTypes}
-                          bankAccounts={bankAccounts}
-                        />
-                      )}
-                    {sub.id === mostRecentId &&
-                      RENEWABLE_STATUSES.includes(sub.status) && (
-                        <RenewSubscriptionDialog
-                          subscriptionId={sub.id}
-                          clientId={clientId}
-                          nextStartDate={format(
-                            addDays(new Date(`${sub.end_date}T00:00:00`), 1),
-                            "yyyy-MM-dd"
-                          )}
-                        />
-                      )}
-                    {CANCELABLE_STATUSES.includes(sub.status) && (
-                      <CancelSubscriptionDialog
+        <Accordion className="rounded-lg border border-border px-4">
+          {subscriptions.map((sub) => (
+            <AccordionItem key={sub.id} value={sub.id}>
+              <AccordionTrigger>
+                <div className="grid flex-1 grid-cols-2 gap-2 text-left sm:grid-cols-4">
+                  <div>
+                    <p className="font-medium">{sub.plan_name}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      {formatDate(sub.start_date)} – {formatDate(sub.end_date)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pagado</p>
+                    <p className="tabular-nums">
+                      ${sub.paid.toLocaleString("es-CO")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pendiente</p>
+                    <p className="tabular-nums">
+                      {sub.remaining > 0
+                        ? `$${sub.remaining.toLocaleString("es-CO")}`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <SubscriptionStatusBadge status={sub.status} />
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {PAYABLE_STATUSES.includes(sub.status) &&
+                    sub.remaining > 0 && (
+                      <RecordPaymentDialog
                         subscriptionId={sub.id}
                         clientId={clientId}
+                        remaining={sub.remaining}
+                        paymentTypes={paymentTypes}
+                        bankAccounts={bankAccounts}
                       />
                     )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  {sub.id === mostRecentId &&
+                    RENEWABLE_STATUSES.includes(sub.status) && (
+                      <RenewSubscriptionDialog
+                        subscriptionId={sub.id}
+                        clientId={clientId}
+                        nextStartDate={format(
+                          addDays(new Date(`${sub.end_date}T00:00:00`), 1),
+                          "yyyy-MM-dd"
+                        )}
+                      />
+                    )}
+                  {CANCELABLE_STATUSES.includes(sub.status) && (
+                    <CancelSubscriptionDialog
+                      subscriptionId={sub.id}
+                      clientId={clientId}
+                    />
+                  )}
+                </div>
+
+                <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Pagos
+                </h3>
+                {sub.payments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Sin pagos registrados
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {sub.payments.map((payment) => {
+                      const methodName =
+                        paymentTypes.find(
+                          (t) => t.code === payment.payment_method
+                        )?.name ?? payment.payment_method;
+                      const account = payment.bank_account_id
+                        ? allBankAccounts.find(
+                            (a) => a.id === payment.bank_account_id
+                          )
+                        : null;
+                      return (
+                        <li
+                          key={payment.id}
+                          className="flex flex-col gap-0.5 rounded-md bg-muted px-3 py-2 text-sm"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="font-medium">
+                              {methodName}
+                              {payment.bank_account_id && (
+                                <span className="font-normal text-muted-foreground">
+                                  {" "}
+                                  ·{" "}
+                                  {account
+                                    ? `${account.account_holder_name} — ${account.account_number}`
+                                    : "Cuenta eliminada"}
+                                </span>
+                              )}
+                            </span>
+                            <span className="tabular-nums font-medium">
+                              ${payment.amount.toLocaleString("es-CO")}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+                            <span>{formatDateTime(payment.payment_date)}</span>
+                            {payment.notes && <span>{payment.notes}</span>}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       )}
     </div>
   );
