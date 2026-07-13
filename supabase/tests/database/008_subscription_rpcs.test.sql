@@ -71,13 +71,13 @@ select tests.authenticate_as('staff1@example.test');
 
 select is(
   public.calculate_end_date('2026-01-15'::date, 'month', 1),
-  '2026-02-15'::date,
-  'calculate_end_date adds one month'
+  '2026-02-14'::date,
+  'calculate_end_date adds one month, ending on the last inclusive day'
 );
 select is(
   public.calculate_end_date('2026-01-15'::date, 'day', 10),
-  '2026-01-25'::date,
-  'calculate_end_date adds ten days'
+  '2026-01-24'::date,
+  'calculate_end_date adds ten days, ending on the last inclusive day'
 );
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
