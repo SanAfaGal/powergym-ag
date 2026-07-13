@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/shared/MoneyInput";
 import {
   Select,
   SelectContent,
@@ -147,12 +148,11 @@ export function PlanForm({
             <FormItem>
               <FormLabel>Precio inicial (COP)</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  {...field}
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                <MoneyInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
                 />
               </FormControl>
               <FormMessage />
