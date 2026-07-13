@@ -2,10 +2,12 @@ export {
   getDashboardStats,
   listDebtors,
   listExpiringSoon,
+  listRevenueByBankAccount,
   type SubscriptionStatus,
   type DashboardStats,
   type DebtorRow,
   type ExpiringRow,
+  type RevenueByAccountRow,
 } from "./queries";
 export { DashboardFilters } from "./components/DashboardFilters";
 export { DashboardKpiRow } from "./components/DashboardKpiRow";
