@@ -7,17 +7,20 @@ const startDate = z.string().min(1, "Seleccioná una fecha de inicio");
 // z.number() vs z.coerce.number() note in the Plans schema: an
 // undefined/blank input's valueAsNumber is NaN, which fails z.number()'s
 // own type check before .min()/.max() run, so { message } must sit on the
-// base constructor.
-const discountPercentage = z
+// base constructor. The upper bound (can't discount more than the plan's
+// price) depends on which plan is selected, which this static schema
+// doesn't know -- EnrollDialog enforces that via .refine() against the
+// selected plan's price.
+const discountAmount = z
   .number({ message: "Ingresá un número" })
   .min(0, "El descuento no puede ser negativo")
-  .max(100, "El descuento no puede superar 100%")
+  .multipleOf(0.01, "El descuento admite hasta 2 decimales")
   .optional();
 
 export const subscriptionSchema = z.object({
   plan_id: planId,
   start_date: startDate,
-  discount_percentage: discountPercentage,
+  discount_amount: discountAmount,
 });
 export type SubscriptionInput = z.infer<typeof subscriptionSchema>;
 

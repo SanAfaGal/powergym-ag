@@ -92,8 +92,8 @@ Table subscriptions {
   end_date date [not null, note: 'check end_date >= start_date']
   status text [not null, default: 'pending_payment', ref: > subscription_statuses.code]
   base_price "numeric(10,2)" [not null, note: 'snapshot of the plan price at creation']
-  discount_percentage "numeric(5,2)" [note: 'check between 0 and 100']
-  final_price "numeric(10,2)" [not null, note: 'GENERATED ALWAYS AS round(base_price * (1 - coalesce(discount_percentage,0)/100), 2) STORED']
+  discount_amount "numeric(10,2)" [note: 'check 0 <= x <= base_price']
+  final_price "numeric(10,2)" [not null, note: 'GENERATED ALWAYS AS round(base_price - coalesce(discount_amount,0), 2) STORED']
   cancellation_date date
   cancellation_reason text
   created_by uuid [ref: > profiles.id]

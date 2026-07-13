@@ -61,7 +61,7 @@ export async function createSubscription(
     p_client_id: clientId,
     p_plan_id: parsed.data.plan_id,
     p_start_date: parsed.data.start_date,
-    p_discount_percentage: parsed.data.discount_percentage ?? 0,
+    p_discount_amount: parsed.data.discount_amount ?? 0,
   });
 
   if (error) {

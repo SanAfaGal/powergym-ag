@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/shared/MoneyInput";
 import {
   Select,
   SelectContent,
@@ -51,18 +52,29 @@ export function EnrollDialog({
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<SubscriptionInput>({
     resolver: zodResolver(subscriptionSchema),
-    defaultValues: { plan_id: "", start_date: bogotaToday(), discount_percentage: 0 },
+    defaultValues: { plan_id: "", start_date: bogotaToday(), discount_amount: 0 },
   });
+  const selectedPlan = plans.find((p) => p.id === form.watch("plan_id"));
 
   async function handleSubmit(values: SubscriptionInput) {
     setServerError(null);
+    if (
+      values.discount_amount &&
+      selectedPlan?.price != null &&
+      values.discount_amount > selectedPlan.price
+    ) {
+      form.setError("discount_amount", {
+        message: "El descuento no puede superar el precio del plan",
+      });
+      return;
+    }
     const result = await createSubscription(clientId, values);
     if ("error" in result) {
       setServerError(result.error);
       return;
     }
     setOpen(false);
-    form.reset({ plan_id: "", start_date: bogotaToday(), discount_percentage: 0 });
+    form.reset({ plan_id: "", start_date: bogotaToday(), discount_amount: 0 });
   }
 
   return (
@@ -124,18 +136,14 @@ export function EnrollDialog({
             />
             <FormField
               control={form.control}
-              name="discount_percentage"
+              name="discount_amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descuento % (opcional)</FormLabel>
+                  <FormLabel>Descuento (opcional)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    <MoneyInput
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />

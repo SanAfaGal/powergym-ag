@@ -15,7 +15,7 @@ export type Subscription = {
   end_date: string;
   status: SubscriptionStatus;
   base_price: number;
-  discount_percentage: number | null;
+  discount_amount: number | null;
   final_price: number;
   cancellation_date: string | null;
   cancellation_reason: string | null;

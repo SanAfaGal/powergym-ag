@@ -148,7 +148,7 @@ select is(
 
 -- simulate a scheduled renewal whose start date has already arrived (setup only, not an assertion)
 insert into public.subscriptions (
-  client_id, plan_id, start_date, end_date, status, base_price, discount_percentage, created_by
+  client_id, plan_id, start_date, end_date, status, base_price, discount_amount, created_by
 ) values (
   (select id from public.clients where dni_number = 'RPC-CLIENT-1'),
   (select id from public.plans where name = 'RPC Plan'),

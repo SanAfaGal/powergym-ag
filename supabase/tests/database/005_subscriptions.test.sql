@@ -47,8 +47,8 @@ select ok(
 );
 
 with new_sub as (
-  insert into public.subscriptions (client_id, plan_id, start_date, end_date, base_price, discount_percentage)
-  select c.id, p.id, current_date, current_date + 30, 100000, 20
+  insert into public.subscriptions (client_id, plan_id, start_date, end_date, base_price, discount_amount)
+  select c.id, p.id, current_date, current_date + 30, 100000, 20000
   from public.clients c, public.plans p
   where c.dni_number = 'TEST-SUB-1' and p.name = 'Monthly Test Plan'
   returning final_price
