@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,11 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { OptionalSection } from "@/components/shared/OptionalSection";
+import { RequiredMark, OptionalMark } from "@/components/shared/FormFieldMarks";
 import {
   Form,
   FormControl,
@@ -28,15 +24,6 @@ import {
 } from "@/components/ui/form";
 import { clientSchema, type ClientInput } from "../schema";
 import type { CatalogEntry } from "../queries";
-
-function RequiredMark() {
-  return (
-    <span className="text-destructive" aria-hidden="true">
-      {" "}
-      *
-    </span>
-  );
-}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -92,7 +79,7 @@ export function ClientForm({
         className="flex flex-col gap-6"
       >
         <p className="text-sm text-muted-foreground">
-          <span className="text-destructive">*</span> Campos obligatorios —
+          <span className="font-bold text-destructive">*</span> Campos obligatorios —
           el resto es opcional
         </p>
 
@@ -138,7 +125,10 @@ export function ClientForm({
               name="alias"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Alias (opcional)</FormLabel>
+                  <FormLabel>
+                    Alias
+                    <OptionalMark />
+                  </FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -146,12 +136,17 @@ export function ClientForm({
                 </FormItem>
               )}
             />
+          </div>
+        </div>
+
+        <OptionalSection label="Datos adicionales">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="dni_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de documento (opcional)</FormLabel>
+                  <FormLabel>Tipo de documento</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -175,14 +170,12 @@ export function ClientForm({
                 </FormItem>
               )}
             />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="dni_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número de documento (opcional)</FormLabel>
+                  <FormLabel>Número de documento</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Según el tipo seleccionado"
@@ -194,16 +187,12 @@ export function ClientForm({
               )}
             />
           </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <SectionLabel>Contacto</SectionLabel>
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem className="sm:max-w-[calc(50%-0.5rem)]">
-                <FormLabel>Correo (opcional)</FormLabel>
+                <FormLabel>Correo</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} />
                 </FormControl>
@@ -211,115 +200,106 @@ export function ClientForm({
               </FormItem>
             )}
           />
-        </div>
-
-        <Collapsible>
-          <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50">
-            Datos adicionales (opcional)
-            <ChevronDownIcon className="size-4 transition-transform group-data-[panel-open]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="flex flex-col gap-4 pt-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          +57
-                        </span>
-                        <Input placeholder="3001234567" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="alternative_phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono alternativo</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          +57
-                        </span>
-                        <Input placeholder="3001234567" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="birth_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fecha de nacimiento</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        max={new Date().toISOString().split("T")[0]}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Género</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Seleccionar">
-                            {(value: string) =>
-                              genderTypes.find((g) => g.code === value)
-                                ?.name ?? "Seleccionar"
-                            }
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {genderTypes.map((g) => (
-                          <SelectItem key={g.code} value={g.code}>
-                            {g.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
-              name="address"
+              name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dirección</FormLabel>
+                  <FormLabel>Teléfono</FormLabel>
                   <FormControl>
-                    <Input placeholder="Calle, número, barrio" {...field} />
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        +57
+                      </span>
+                      <Input placeholder="3001234567" {...field} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </CollapsibleContent>
-        </Collapsible>
+            <FormField
+              control={form.control}
+              name="alternative_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono alternativo</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        +57
+                      </span>
+                      <Input placeholder="3001234567" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="birth_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de nacimiento</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      max={new Date().toISOString().split("T")[0]}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Género</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar">
+                          {(value: string) =>
+                            genderTypes.find((g) => g.code === value)
+                              ?.name ?? "Seleccionar"
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {genderTypes.map((g) => (
+                        <SelectItem key={g.code} value={g.code}>
+                          {g.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Dirección</FormLabel>
+                <FormControl>
+                  <Input placeholder="Calle, número, barrio" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </OptionalSection>
 
         {serverError && (
           <p className="text-sm text-destructive">{serverError}</p>
