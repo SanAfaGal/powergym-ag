@@ -13,6 +13,7 @@ import { CancelSubscriptionDialog } from "./CancelSubscriptionDialog";
 import { RenewSubscriptionDialog } from "./RenewSubscriptionDialog";
 import type { SubscriptionRow, PlanOption, PaymentType } from "../queries";
 import type { BankAccount } from "@/modules/bank-accounts";
+import { bogotaToday } from "@/lib/date/bogota";
 
 const OPEN_STATUSES = ["active", "pending_payment", "scheduled"];
 const CANCELABLE_STATUSES = ["active", "pending_payment", "scheduled"];
@@ -46,8 +47,14 @@ export function SubscriptionsSection({
   bankAccounts: BankAccount[];
   allBankAccounts: BankAccount[];
 }) {
-  const hasOpenSubscription = subscriptions.some((s) =>
-    OPEN_STATUSES.includes(s.status)
+  // An 'active' row whose end_date already passed doesn't count as open --
+  // see the matching comment in actions.ts's createSubscription for why
+  // (the daily expiration cron hasn't necessarily caught up to it yet).
+  const today = bogotaToday();
+  const hasOpenSubscription = subscriptions.some(
+    (s) =>
+      OPEN_STATUSES.includes(s.status) &&
+      (s.status !== "active" || s.end_date >= today)
   );
   const mostRecentId = subscriptions[0]?.id;
 

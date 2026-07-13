@@ -34,6 +34,21 @@ export async function createSubscription(
 
   const supabase = await createSupabaseClient();
 
+  // The daily expire_subscriptions() cron (migration 0009) only runs once,
+  // at midnight Bogota, so a membership that lapsed since then still reads
+  // status='active' here. Expiring it eagerly, scoped to this client, means
+  // the open-subscription check below doesn't wrongly treat a lapsed
+  // membership as blocking, and avoids a later collision with
+  // one_active_subscription_per_client if the new subscription gets paid
+  // in full immediately (see migration 0025).
+  const { error: expireError } = await supabase.rpc(
+    "expire_stale_active_subscription",
+    { p_client_id: clientId }
+  );
+  if (expireError) {
+    return { error: "No se pudo crear la suscripción" };
+  }
+
   // create_subscription's own uniqueness check (and the
   // one_active_subscription_per_client index) only blocks a duplicate
   // ACTIVE subscription -- it doesn't block a second one while the client
@@ -137,6 +152,21 @@ export async function renewSubscription(
   clientId: string
 ): Promise<{ error: string } | { success: true }> {
   const supabase = await createSupabaseClient();
+
+  // Same reasoning as createSubscription: the renewed row is created
+  // pending_payment/scheduled, but if it's paid in full right away,
+  // record_payment's "mark active" update would collide with
+  // one_active_subscription_per_client if the old row -- the very one
+  // being renewed -- is still 'active' because the daily cron hasn't
+  // caught up to its end_date yet.
+  const { error: expireError } = await supabase.rpc(
+    "expire_stale_active_subscription",
+    { p_client_id: clientId }
+  );
+  if (expireError) {
+    return { error: "No se pudo renovar la suscripción" };
+  }
+
   const { error } = await supabase.rpc("renew_subscription", {
     p_subscription_id: subscriptionId,
   });
