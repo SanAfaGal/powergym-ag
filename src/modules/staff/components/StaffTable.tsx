@@ -26,7 +26,7 @@ export function StaffTable({
             <TableHead>Nombre</TableHead>
             <TableHead>Rol</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="sticky right-0 bg-card text-right">
+            <TableHead className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
               Acciones
             </TableHead>
           </TableRow>
@@ -43,7 +43,7 @@ export function StaffTable({
               <TableCell>
                 <StatusBadge isActive={member.is_active} />
               </TableCell>
-              <TableCell className="sticky right-0 flex justify-end gap-2 bg-card text-right">
+              <TableCell className="sticky right-0 flex justify-end gap-2 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
                 <StaffActions staff={member} currentUserId={currentUserId} />
               </TableCell>
             </TableRow>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { isActiveAdmin } from "@/lib/auth/roles";
 import {
@@ -34,15 +33,11 @@ export default async function BankAccountsPage() {
           </Button>
         }
       />
-      <Card className="gap-0 py-0">
-        <div className="p-4 sm:p-6">
-          <BankAccountList
-            accounts={accounts}
-            banks={banks}
-            accountTypes={accountTypes}
-          />
-        </div>
-      </Card>
+      <BankAccountList
+        accounts={accounts}
+        banks={banks}
+        accountTypes={accountTypes}
+      />
     </div>
   );
 }

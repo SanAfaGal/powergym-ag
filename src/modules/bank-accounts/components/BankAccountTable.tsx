@@ -30,7 +30,7 @@ export function BankAccountTable({
             <TableHead>Número</TableHead>
             <TableHead>Titular</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="sticky right-0 bg-card text-right">
+            <TableHead className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
               Acciones
             </TableHead>
           </TableRow>
@@ -53,7 +53,7 @@ export function BankAccountTable({
               <TableCell>
                 <StatusBadge isActive={account.is_active} />
               </TableCell>
-              <TableCell className="sticky right-0 flex justify-end gap-2 bg-card text-right">
+              <TableCell className="sticky right-0 flex justify-end gap-2 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
                 <EditBankAccountDialog
                   account={account}
                   banks={banks}

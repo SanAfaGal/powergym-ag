@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   listClients,
@@ -45,17 +44,14 @@ export default async function ClientsPage({
         }
       />
 
-      <Card className="gap-0 py-0">
-        <div className="border-b border-border p-4 sm:p-6">
-          <ClientFilters defaultQuery={q} status={status} />
-        </div>
-        <div className="p-4 sm:p-6">
-          <ClientList
-            clients={clients}
-            hasFilters={Boolean(q) || status !== "all"}
-          />
-        </div>
-      </Card>
+      <div className="mb-4">
+        <ClientFilters defaultQuery={q} status={status} />
+      </div>
+
+      <ClientList
+        clients={clients}
+        hasFilters={Boolean(q) || status !== "all"}
+      />
 
       <div className="mt-4">
         <Pager

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { listPlans, isAdmin, PlanList } from "@/modules/plans";
 
@@ -21,11 +20,7 @@ export default async function PlansPage() {
         }
       />
 
-      <Card className="gap-0 py-0">
-        <div className="p-4 sm:p-6">
-          <PlanList plans={plans} canCreate={canCreate} />
-        </div>
-      </Card>
+      <PlanList plans={plans} canCreate={canCreate} />
     </div>
   );
 }

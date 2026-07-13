@@ -35,10 +35,10 @@ export default async function DashboardLayout({
         isAdmin={profile.role === "admin"}
       />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4 md:hidden">
           <SidebarTrigger />
         </header>
-        <div className="flex-1 bg-secondary/50">
+        <div className="flex-1">
           <div className="mx-auto max-w-6xl px-6 py-8 sm:px-8">{children}</div>
         </div>
       </SidebarInset>

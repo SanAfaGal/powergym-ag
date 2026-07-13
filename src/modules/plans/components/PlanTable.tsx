@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -23,7 +24,7 @@ export function PlanTable({ plans }: { plans: PlanRow[] }) {
             <TableHead>Duración</TableHead>
             <TableHead>Precio</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="sticky right-0 bg-card text-right">
+            <TableHead className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
               Acciones
             </TableHead>
           </TableRow>
@@ -49,14 +50,15 @@ export function PlanTable({ plans }: { plans: PlanRow[] }) {
               <TableCell>
                 <StatusBadge isActive={plan.is_active} />
               </TableCell>
-              <TableCell className="sticky right-0 bg-card text-right">
+              <TableCell className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
                 <Button
                   render={<Link href={`/plans/${plan.id}`} />}
                   nativeButton={false}
-                  variant="ghost"
-                  size="sm"
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Ver plan"
                 >
-                  Ver
+                  <Eye />
                 </Button>
               </TableCell>
             </TableRow>

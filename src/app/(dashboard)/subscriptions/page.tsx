@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   listSubscriptions,
@@ -32,14 +31,10 @@ export default async function SubscriptionsPage({
         title="Suscripciones"
         description="Todas las suscripciones del gimnasio, con su estado y saldo pendiente."
       />
-      <Card className="gap-0 py-0">
-        <div className="border-b border-border p-4 sm:p-6">
-          <SubscriptionFilters status={status ?? "all"} />
-        </div>
-        <div className="p-4 sm:p-6">
-          <SubscriptionList subscriptions={subscriptions} />
-        </div>
-      </Card>
+      <div className="mb-4">
+        <SubscriptionFilters status={status ?? "all"} />
+      </div>
+      <SubscriptionList subscriptions={subscriptions} />
     </div>
   );
 }

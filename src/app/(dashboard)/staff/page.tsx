@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import { isActiveAdmin } from "@/lib/auth/roles";
@@ -29,11 +28,7 @@ export default async function StaffPage() {
         description="Usuarios con acceso al panel administrativo."
         actions={<CreateStaffDialog />}
       />
-      <Card className="gap-0 py-0">
-        <div className="p-4 sm:p-6">
-          <StaffList staff={staff} currentUserId={user.id} />
-        </div>
-      </Card>
+      <StaffList staff={staff} currentUserId={user.id} />
     </div>
   );
 }
