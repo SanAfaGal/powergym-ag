@@ -43,3 +43,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI agent workspaces -- local runtime state, task briefs/reports, review
+# diffs, and other workflow scratch output, never project deliverables
+/.claude/
+/.superpowers/
