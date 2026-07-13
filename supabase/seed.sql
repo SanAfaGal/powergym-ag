@@ -81,7 +81,7 @@ on conflict do nothing;
 
 insert into public.payments (subscription_id, amount, payment_method, bank_account_id)
 values
-  ('30000000-0000-0000-0000-000000000001', 40000, 'qr', '40000000-0000-0000-0000-000000000001')
+  ('30000000-0000-0000-0000-000000000001', 40000, 'bank', '40000000-0000-0000-0000-000000000001')
 on conflict do nothing;
 
 -- Partial payment on Carlos Ramirez's subscription -- final_price (100000)

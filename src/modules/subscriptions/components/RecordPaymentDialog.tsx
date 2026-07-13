@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Banknote, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
@@ -13,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +34,14 @@ import { paymentSchema, type PaymentInput } from "../schema";
 import { recordPayment } from "../actions";
 import type { PaymentType } from "../queries";
 import type { BankAccount } from "@/modules/bank-accounts";
+
+// payment_types is a DB catalog, but its 2 rows map to a fixed pair of
+// concepts (cash in hand vs. money that landed in a bank account) that
+// each get a distinct icon in this first-choice toggle.
+const PAYMENT_METHOD_ICONS: Record<string, typeof Banknote> = {
+  cash: Banknote,
+  bank: Landmark,
+};
 
 export function RecordPaymentDialog({
   subscriptionId,
@@ -147,24 +157,30 @@ export function RecordPaymentDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Método de pago</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue>
-                          {(value: string) =>
-                            paymentTypes.find((t) => t.code === value)?.name
-                          }
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {paymentTypes.map((t) => (
-                        <SelectItem key={t.code} value={t.code}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <div className="grid grid-cols-2 gap-2">
+                      {paymentTypes.map((t) => {
+                        const Icon = PAYMENT_METHOD_ICONS[t.code] ?? Banknote;
+                        const selected = field.value === t.code;
+                        return (
+                          <button
+                            key={t.code}
+                            type="button"
+                            onClick={() => field.onChange(t.code)}
+                            className={cn(
+                              "flex flex-col items-center gap-1.5 rounded-lg border px-3 py-3 text-sm font-medium transition-colors",
+                              selected
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:bg-muted"
+                            )}
+                          >
+                            <Icon className="size-5" />
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

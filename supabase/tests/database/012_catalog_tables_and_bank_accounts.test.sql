@@ -16,7 +16,7 @@ select plan(14);
 select is((select count(*)::int from public.document_types), 4, 'document_types seeded with CC/TI/CE/PP');
 select is((select count(*)::int from public.gender_types), 3, 'gender_types seeded with male/female/other');
 select is((select count(*)::int from public.subscription_statuses), 5, 'subscription_statuses seeded with the 5 original statuses');
-select is((select count(*)::int from public.payment_types), 3, 'payment_types seeded with cash/qr/transfer');
+select is((select count(*)::int from public.payment_types), 2, 'payment_types seeded with cash/bank');
 select is((select count(*)::int from public.banks), 1, 'banks seeded with BANCOLOMBIA');
 select is((select count(*)::int from public.bank_account_types), 2, 'bank_account_types seeded with savings/checking');
 
@@ -62,11 +62,11 @@ select throws_ok(
   $$ insert into public.payments (subscription_id, amount, payment_method)
      values (
        (select id from public.subscriptions where client_id = (select id from public.clients where dni_number = 'CATALOG-CLIENT-2')),
-       50000, 'qr'
+       50000, 'bank'
      ) $$,
   'P0001',
   null,
-  'qr payment without a bank_account_id is rejected (qr.requires_bank_account = true)'
+  'bank payment without a bank_account_id is rejected (bank.requires_bank_account = true)'
 );
 select lives_ok(
   $$ insert into public.payments (subscription_id, amount, payment_method)
@@ -80,10 +80,10 @@ select lives_ok(
   $$ insert into public.payments (subscription_id, amount, payment_method, bank_account_id)
      values (
        (select id from public.subscriptions where client_id = (select id from public.clients where dni_number = 'CATALOG-CLIENT-2')),
-       50000, 'qr',
+       50000, 'bank',
        (select id from public.bank_accounts where account_number = 'TRIGGER-TEST-ACCT')
      ) $$,
-  'qr payment with a bank_account_id succeeds'
+  'bank payment with a bank_account_id succeeds'
 );
 
 -- ------------------------------------------------------------
