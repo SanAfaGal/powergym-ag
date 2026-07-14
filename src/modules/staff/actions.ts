@@ -4,7 +4,14 @@ import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { isActiveAdmin } from "@/lib/auth/roles";
-import { createStaffSchema, type CreateStaffInput } from "./schema";
+import {
+  createStaffSchema,
+  updateStaffSchema,
+  resetStaffPasswordSchema,
+  type CreateStaffInput,
+  type UpdateStaffInput,
+  type ResetStaffPasswordInput,
+} from "./schema";
 
 // Service-role client -- authenticates as the Supabase project itself and
 // bypasses ALL Row Level Security. This is the ONLY place in the app that
@@ -14,9 +21,10 @@ import { createStaffSchema, type CreateStaffInput } from "./schema";
 //     particular never leaves this module either),
 //   - built fresh per call from a server-only env var (no NEXT_PUBLIC_
 //     prefix, so Next.js never inlines it into a client bundle),
-//   - only ever reached from createStaff, and only AFTER that caller has
-//     already been confirmed to be an active admin via the normal
-//     authenticated client below -- see the comment in createStaff.
+//   - only ever reached from actions below that need the auth.admin API
+//     (createStaff, getStaffEmail, updateStaffInfo, resetStaffPassword), and
+//     only AFTER the caller has already been confirmed to be an active admin
+//     via requireCallerIsAdmin() below.
 function createServiceRoleClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -38,6 +46,21 @@ function createServiceRoleClient() {
 // instead of leaking raw Postgres error text to the UI.
 const LAST_ADMIN_ERROR_MESSAGE =
   "No puedes remover al último administrador activo";
+
+// Shared defense-in-depth check ahead of every action that reaches for
+// createServiceRoleClient() (see its comment above): confirms the CALLING
+// user is an active admin via the normal authenticated (RLS-respecting)
+// client BEFORE bypassing RLS. Returns an error message if the caller isn't
+// cleared, or null if they are.
+async function requireCallerIsAdmin(): Promise<string | null> {
+  let callerIsAdmin: boolean;
+  try {
+    callerIsAdmin = await isActiveAdmin();
+  } catch {
+    return "No se pudo verificar el usuario actual";
+  }
+  return callerIsAdmin ? null : "No tenés permiso para realizar esta acción";
+}
 
 export async function updateStaffRole(
   id: string,
@@ -100,27 +123,8 @@ export async function createStaff(
     return { success: false, error: "Revisá los datos ingresados" };
   }
 
-  // Defense in depth: confirm the CALLING user is an active admin via the
-  // normal authenticated (RLS-respecting) client BEFORE ever constructing
-  // the service-role client below. This action is the first and only place
-  // in the app that reaches for SUPABASE_SERVICE_ROLE_KEY, which bypasses
-  // RLS entirely -- we don't rely solely on "only admins would know this
-  // Server Action exists."
-  let callerIsAdmin: boolean;
-  try {
-    callerIsAdmin = await isActiveAdmin();
-  } catch {
-    return {
-      success: false,
-      error: "No se pudo verificar el usuario actual",
-    };
-  }
-  if (!callerIsAdmin) {
-    return {
-      success: false,
-      error: "No tenés permiso para crear usuarios de staff",
-    };
-  }
+  const adminError = await requireCallerIsAdmin();
+  if (adminError) return { success: false, error: adminError };
 
   const { email, full_name, role, temporary_password } = parsed.data;
 
@@ -166,5 +170,90 @@ export async function createStaff(
   }
 
   revalidatePath("/staff");
+  return { success: true };
+}
+
+export async function getStaffEmail(
+  id: string
+): Promise<{ success: true; email: string } | { success: false; error: string }> {
+  const adminError = await requireCallerIsAdmin();
+  if (adminError) return { success: false, error: adminError };
+
+  const serviceRoleClient = createServiceRoleClient();
+  const { data, error } = await serviceRoleClient.auth.admin.getUserById(id);
+  if (error || !data?.user) {
+    return { success: false, error: "No se pudo obtener el correo actual" };
+  }
+
+  return { success: true, email: data.user.email ?? "" };
+}
+
+export async function updateStaffInfo(
+  id: string,
+  values: UpdateStaffInput
+): Promise<{ success: true } | { success: false; error: string }> {
+  const parsed = updateStaffSchema.safeParse(values);
+  if (!parsed.success) {
+    return { success: false, error: "Revisá los datos ingresados" };
+  }
+
+  const adminError = await requireCallerIsAdmin();
+  if (adminError) return { success: false, error: adminError };
+
+  const { email, full_name } = parsed.data;
+
+  // Email first: it's the update most likely to fail (address already taken
+  // by another user), and failing here means nothing has been written yet.
+  const serviceRoleClient = createServiceRoleClient();
+  const { error: emailError } = await serviceRoleClient.auth.admin.updateUserById(
+    id,
+    { email }
+  );
+  if (emailError) {
+    return {
+      success: false,
+      error: emailError.message.includes("already been registered")
+        ? "Ya existe un usuario con ese correo"
+        : "No se pudo actualizar el correo",
+    };
+  }
+
+  const supabase = await createSupabaseClient();
+  const { error: nameError } = await supabase.rpc("set_staff_full_name", {
+    p_target: id,
+    p_full_name: full_name,
+  });
+  if (nameError) {
+    return {
+      success: false,
+      error:
+        "El correo se actualizó pero no se pudo actualizar el nombre. Intentalo de nuevo.",
+    };
+  }
+
+  revalidatePath("/staff");
+  return { success: true };
+}
+
+export async function resetStaffPassword(
+  id: string,
+  values: ResetStaffPasswordInput
+): Promise<{ success: true } | { success: false; error: string }> {
+  const parsed = resetStaffPasswordSchema.safeParse(values);
+  if (!parsed.success) {
+    return { success: false, error: "Revisá los datos ingresados" };
+  }
+
+  const adminError = await requireCallerIsAdmin();
+  if (adminError) return { success: false, error: adminError };
+
+  const serviceRoleClient = createServiceRoleClient();
+  const { error } = await serviceRoleClient.auth.admin.updateUserById(id, {
+    password: parsed.data.temporary_password,
+  });
+  if (error) {
+    return { success: false, error: "No se pudo restablecer la contraseña" };
+  }
+
   return { success: true };
 }
