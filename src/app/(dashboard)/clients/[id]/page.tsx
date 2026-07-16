@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/shared/BackLink";
 import {
   getClient,
   listDocumentTypes,
@@ -46,23 +47,26 @@ export default async function ClientDetailPage({
   ]);
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-      <ClientInfoSidebar
-        client={client}
-        documentTypes={documentTypes}
-        genderTypes={genderTypes}
-      />
-
-      <div>
-        <SubscriptionsSection
-          clientId={client.id}
-          subscriptions={subscriptions}
-          plans={plans}
-          paymentTypes={paymentTypes}
-          bankAccounts={activeBankAccounts}
-          allBankAccounts={allBankAccounts}
+    <>
+      <BackLink href="/clients" label="Clientes" />
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
+        <ClientInfoSidebar
+          client={client}
+          documentTypes={documentTypes}
+          genderTypes={genderTypes}
         />
+
+        <div>
+          <SubscriptionsSection
+            clientId={client.id}
+            subscriptions={subscriptions}
+            plans={plans}
+            paymentTypes={paymentTypes}
+            bankAccounts={activeBankAccounts}
+            allBankAccounts={allBankAccounts}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
