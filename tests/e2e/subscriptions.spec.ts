@@ -21,9 +21,18 @@ test("admin can enroll a client, record a full payment, and see it become active
   await login(page, ADMIN);
 
   await page.goto("/clients");
-  await page
-    .getByPlaceholder("Buscar por nombre, alias, documento o email...")
-    .waitFor();
+  const searchInput = page.getByPlaceholder(
+    "Buscar por nombre, alias, documento o email..."
+  );
+  await searchInput.waitFor();
+  // The seeded client list has grown past one page (Task 9), and the
+  // default sort is by subscription start date, so "Maria Gomez" isn't
+  // guaranteed to be on page 1. Search for her by name instead of relying
+  // on list position -- ClientFilters debounces the query 300ms before
+  // pushing it as a `q` search param, so wait for that navigation to
+  // settle before locating the now-filtered, guaranteed-single link.
+  await searchInput.fill("Maria Gomez");
+  await page.waitForURL(/[?&]q=Maria(\+|%20)Gomez/);
   await page.getByRole("link", { name: "Maria Gomez" }).click();
   await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+$/);
 
@@ -51,9 +60,19 @@ test("admin can enroll a client, record a full payment, and see it become active
 
   await expect(page.getByText("Pendiente de pago")).toBeVisible();
 
+  // SubscriptionsSection renders each subscription inside a closed-by-default
+  // Accordion item (base-ui's Accordion.Root defaults to an empty open-items
+  // array); "Registrar pago" lives in the collapsed panel, so expand it by
+  // clicking the trigger before the button becomes reachable. This is
+  // unrelated to the client-search fix above -- pre-existing accordion
+  // behavior that this test's original direct-click flow never accounted for.
+  await page.getByText("Pendiente de pago").click();
+
   await page.getByRole("button", { name: "Registrar pago" }).click();
-  await page.getByLabel("Método de pago").click();
-  await page.getByRole("option", { name: "Efectivo" }).click();
+  // Método de pago is rendered as a plain icon-toggle button group (see
+  // RecordPaymentDialog), not a Select -- click the option button directly
+  // instead of opening a combobox and picking a role="option".
+  await page.getByRole("button", { name: "Efectivo" }).click();
   // "Efectivo" (cash) doesn't require a bank account, so no extra field
   // should appear before we can submit.
   await expect(page.getByLabel("Cuenta que recibe")).toHaveCount(0);
