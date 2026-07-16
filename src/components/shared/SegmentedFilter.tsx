@@ -7,15 +7,18 @@ export function SegmentedFilter<T extends string>({
   value,
   onChange,
   className,
+  "aria-label": ariaLabel,
 }: {
   options: readonly { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  "aria-label"?: string;
 }) {
   return (
     <div
       role="radiogroup"
+      aria-label={ariaLabel}
       className={cn(
         "inline-flex flex-wrap gap-[3px] rounded-lg border border-input bg-muted p-[3px]",
         className

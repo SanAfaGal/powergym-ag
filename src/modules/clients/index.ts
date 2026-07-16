@@ -13,7 +13,6 @@ export { createClient, updateClient, setClientActive } from "./actions";
 export { ClientForm } from "./components/ClientForm";
 export { ClientList } from "./components/ClientList";
 export { ClientFilters } from "./components/ClientFilters";
-export { ClientSortControl } from "./components/ClientSortControl";
 export { ClientIndicators } from "./components/ClientIndicators";
 export { Pager } from "@/components/shared/Pager";
 export { StatusBadge } from "@/components/shared/StatusBadge";

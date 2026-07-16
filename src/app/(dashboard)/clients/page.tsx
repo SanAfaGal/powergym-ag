@@ -5,7 +5,6 @@ import {
   listClients,
   ClientList,
   ClientFilters,
-  ClientSortControl,
   ClientIndicators,
   Pager,
   type SortOption,
@@ -107,16 +106,16 @@ export default async function ClientsPage({
         <ClientIndicators stats={stats} />
       </div>
 
-      <div className="mb-4 flex flex-col gap-3">
+      <div className="mb-4">
         <ClientFilters
           defaultQuery={q}
           status={status}
           subscriptionStatus={subscriptionStatus}
           planId={planId}
           hasBalance={hasBalance}
+          sort={sort}
           plans={plans}
         />
-        <ClientSortControl sort={sort} />
       </div>
 
       <ClientList clients={clients} hasFilters={hasFilters} />
