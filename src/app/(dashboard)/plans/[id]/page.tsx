@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { BackLink } from "@/components/shared/BackLink";
 import {
   getPlan,
   getPriceHistory,
@@ -35,6 +36,7 @@ export default async function PlanDetailPage({
 
   return (
     <div>
+      <BackLink href="/plans" label="Planes" />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
