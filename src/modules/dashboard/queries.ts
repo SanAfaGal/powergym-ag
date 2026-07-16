@@ -1,6 +1,5 @@
 import { addDays, format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
-import { bogotaToday } from "@/lib/date/bogota";
 
 export type SubscriptionStatus =
   | "active"
@@ -20,33 +19,11 @@ export type DashboardStats = {
   alerts: { expiring_within_7_days: number };
 };
 
-export type DebtorRow = {
-  subscription_id: string;
-  client_id: string;
-  client_name: string;
-  plan_name: string;
-  status: SubscriptionStatus;
-  remaining: number;
-};
-
 export type RevenueByAccountRow = {
   bank_account_id: string;
   total: number;
   methods: { payment_method: string; amount: number }[];
 };
-
-export type ExpiringRow = {
-  subscription_id: string;
-  client_id: string;
-  client_name: string;
-  plan_name: string;
-  end_date: string;
-  remaining: number;
-};
-
-function sumPayments(payments: { amount: number }[] | null) {
-  return (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
-}
 
 export async function getDashboardStats(
   start: string,
@@ -112,88 +89,4 @@ export async function listRevenueByBankAccount(
       };
     })
     .sort((a, b) => b.total - a.total);
-}
-
-const DEBTORS_LIMIT = 10;
-const EXPIRING_SOON_LIMIT = 10;
-
-export async function listDebtors(): Promise<DebtorRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select(
-      "id, client_id, status, final_price, plans(name), clients(first_name, last_name), payments(amount)"
-    )
-    .in("status", ["active", "pending_payment"]);
-
-  if (error) throw error;
-
-  return (data ?? [])
-    .map((row) => {
-      const { id, client_id, status, final_price, plans, clients, payments } =
-        row as unknown as {
-          id: string;
-          client_id: string;
-          status: SubscriptionStatus;
-          final_price: number;
-          plans: { name: string } | null;
-          clients: { first_name: string; last_name: string } | null;
-          payments: { amount: number }[] | null;
-        };
-      const paid = sumPayments(payments);
-      return {
-        subscription_id: id,
-        client_id,
-        client_name: clients
-          ? `${clients.first_name} ${clients.last_name}`
-          : "",
-        plan_name: plans?.name ?? "",
-        status,
-        remaining: Math.max(final_price - paid, 0),
-      };
-    })
-    .filter((row) => row.remaining > 0)
-    .sort((a, b) => b.remaining - a.remaining)
-    .slice(0, DEBTORS_LIMIT);
-}
-
-export async function listExpiringSoon(days = 7): Promise<ExpiringRow[]> {
-  const supabase = await createClient();
-  const today = bogotaToday();
-  const limit = format(addDays(new Date(`${today}T00:00:00`), days), "yyyy-MM-dd");
-
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select(
-      "id, client_id, end_date, final_price, plans(name), clients(first_name, last_name), payments(amount)"
-    )
-    .eq("status", "active")
-    .gte("end_date", today)
-    .lte("end_date", limit)
-    .order("end_date", { ascending: true })
-    .limit(EXPIRING_SOON_LIMIT);
-
-  if (error) throw error;
-
-  return (data ?? []).map((row) => {
-    const { id, client_id, end_date, final_price, plans, clients, payments } =
-      row as unknown as {
-        id: string;
-        client_id: string;
-        end_date: string;
-        final_price: number;
-        plans: { name: string } | null;
-        clients: { first_name: string; last_name: string } | null;
-        payments: { amount: number }[] | null;
-      };
-    const paid = sumPayments(payments);
-    return {
-      subscription_id: id,
-      client_id,
-      client_name: clients ? `${clients.first_name} ${clients.last_name}` : "",
-      plan_name: plans?.name ?? "",
-      end_date,
-      remaining: Math.max(final_price - paid, 0),
-    };
-  });
 }

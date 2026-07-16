@@ -7,8 +7,6 @@ import {
   KpiSection,
   SubscriptionStatusSection,
   RevenueSection,
-  DebtorsSection,
-  ExpiringSoonSection,
   KpiSkeleton,
   CardListSkeleton,
 } from "@/modules/dashboard";
@@ -67,22 +65,6 @@ export default async function DashboardPage({
             />
           </Suspense>
         </div>
-
-        <Suspense
-          fallback={
-            <CardListSkeleton title="Clientes con saldo pendiente" />
-          }
-        >
-          <DebtorsSection />
-        </Suspense>
-
-        <Suspense
-          fallback={
-            <CardListSkeleton title="Suscripciones por vencer (próximos 7 días)" />
-          }
-        >
-          <ExpiringSoonSection />
-        </Suspense>
       </div>
     </div>
   );
