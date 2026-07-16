@@ -111,6 +111,12 @@ Table subscriptions {
   Note: 'client_id: on delete cascade. plan_id: on delete restrict. Business invariant: at most one active subscription per client.'
 }
 
+// client_subscription_overview (view, migration 0033): one row per client
+// LEFT JOINed to their highest-priority subscription (active >
+// pending_payment > scheduled > expired > canceled, tied by start_date desc
+// then created_at desc), with paid/remaining/days_remaining computed.
+// security_invoker -- respects clients/subscriptions/payments/plans RLS.
+
 Table payments {
   id uuid [pk, default: `gen_random_uuid()`]
   subscription_id uuid [not null, ref: > subscriptions.id]
