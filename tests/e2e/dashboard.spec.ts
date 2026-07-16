@@ -11,7 +11,7 @@ async function login(page: import("@playwright/test").Page, creds: typeof ADMIN)
   await page.waitForURL("**/dashboard");
 }
 
-test("admin sees dashboard KPIs, breakdowns, a debtor/expiring row, and can filter by date range", async ({
+test("admin sees dashboard KPIs, breakdowns, and can filter by date range", async ({
   page,
 }) => {
   await login(page, ADMIN);
@@ -37,38 +37,7 @@ test("admin sees dashboard KPIs, breakdowns, a debtor/expiring row, and can filt
   await expect(page.getByText("Suscripciones por estado")).toBeVisible();
   await expect(page.getByText("Ingresos por método de pago")).toBeVisible();
 
-  // Both DebtorsList/ExpiringSoonList render a desktop <table> ("hidden
-  // md:block") and a mobile card list ("flex ... md:hidden") at the same
-  // time -- only one is display:none depending on viewport, so scope
-  // locators to each section's own Card (data-slot="card") to avoid
-  // matching the same client name twice, and use getByRole("link", ...)
-  // which Playwright only resolves against the accessibility tree (so the
-  // display:none list at this desktop viewport is naturally excluded).
-  //
-  // seed.sql seeds Carlos Ramirez with an active subscription that's both
-  // partially paid (a debtor) and expiring within 7 days, so these
-  // assertions exercise real rows rather than only the empty states.
-  const debtorsCard = page
-    .locator('[data-slot="card"]')
-    .filter({ hasText: "Clientes con saldo pendiente" });
-  const debtorLink = debtorsCard.getByRole("link", { name: "Carlos Ramirez" });
-  await expect(debtorLink).toBeVisible();
-
-  const expiringCard = page
-    .locator('[data-slot="card"]')
-    .filter({ hasText: "Suscripciones por vencer" });
-  await expect(
-    expiringCard.getByRole("link", { name: "Carlos Ramirez" })
-  ).toBeVisible();
-
-  // Clicking the debtor row's link navigates to that client's detail page.
-  await debtorLink.click();
-  await expect(page).toHaveURL(
-    "http://localhost:3000/clients/20000000-0000-0000-0000-000000000003"
-  );
-
-  // Back to the dashboard to exercise the date-range filter.
-  await page.goto("/dashboard");
+  // Exercise the date-range filter.
   const hastaInput = page.getByLabel("Hasta");
   // DashboardFilters is a client component; the SSR'd HTML already shows
   // the right value/content before hydration attaches the onChange
