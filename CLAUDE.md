@@ -52,11 +52,11 @@ UI copy and toasts (sonner) are in Spanish — match this when adding user-facin
 
 - `client.ts` — browser client, Client Components only
 - `server.ts` — server client via `next/headers` cookies; swallows `setAll` failures in Server Components (middleware refreshes the session, so this is safe)
-- `middleware.ts` — `updateSession(request)`, used by `src/middleware.ts`; uses `getUser()` (not `getSession()`) to revalidate against Supabase rather than trusting the cookie
+- `middleware.ts` — `updateSession(request)`, used by `src/proxy.ts`; uses `getUser()` (not `getSession()`) to revalidate against Supabase rather than trusting the cookie
 
 ### Auth gating (defense in depth, two layers)
 
-1. `src/middleware.ts`: no user → redirect `/login`; `profiles.is_active === false` → force `signOut()` and redirect to `/login?error=inactive` (must manually copy cookies from `supabaseResponse` onto the redirect response); logged-in user hitting `/login` → redirect `/dashboard`.
+1. `src/proxy.ts`: no user → redirect `/login`; `profiles.is_active === false` → force `signOut()` and redirect to `/login?error=inactive` (must manually copy cookies from `supabaseResponse` onto the redirect response); logged-in user hitting `/login` → redirect `/dashboard`.
 2. `src/app/(dashboard)/layout.tsx`: re-checks `supabase.auth.getUser()` server-side (should be unreachable, but kept as a second gate), then fetches `profiles.full_name/role` to drive `AppSidebar` nav (admin vs employee).
 
 ### Database (`supabase/`)
