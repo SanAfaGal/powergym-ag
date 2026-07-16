@@ -1,19 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { createClient } from "@/lib/supabase/server";
-import { listPaymentTypes } from "@/modules/subscriptions";
-import { listBankAccounts, listBanks } from "@/modules/bank-accounts";
+import { getAuthContext } from "@/lib/auth/session";
 import {
   getDashboardStats,
-  listDebtors,
-  listExpiringSoon,
-  listRevenueByBankAccount,
   DashboardFilters,
-  DashboardKpiRow,
-  SubscriptionStatusBreakdown,
-  RevenueByMethodBreakdown,
-  DebtorsList,
-  ExpiringSoonList,
+  KpiSection,
+  SubscriptionStatusSection,
+  RevenueSection,
+  DebtorsSection,
+  ExpiringSoonSection,
+  KpiSkeleton,
+  CardListSkeleton,
 } from "@/modules/dashboard";
 import { bogotaToday } from "@/lib/date/bogota";
 
@@ -27,33 +24,15 @@ export default async function DashboardPage({
   const start = params.start ?? `${today.slice(0, 7)}-01`;
   const end = params.end ?? today;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = user
-    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
-    : { data: null };
-  const isAdmin = profile?.role === "admin";
+  const auth = await getAuthContext();
+  const isAdmin = auth?.profile.role === "admin";
 
-  // Debtors and expiring-soon are current-state lists (who owes money /
-  // whose subscription is about to lapse right now), not historical
-  // reporting, so they intentionally ignore the start/end range filter
-  // that only applies to the KPI row and the revenue-by-method breakdown.
-  // Bank account destinations are only visible to admins -- the
-  // bank-accounts module keeps account numbers admin-only everywhere else
-  // in the app, so the dashboard shouldn't be the one place that leaks them
-  // to employees, even though RLS itself permits staff to read the table.
-  const [stats, debtors, expiringSoon, paymentTypes, revenueByAccount, bankAccounts, banks] =
-    await Promise.all([
-      getDashboardStats(start, end),
-      listDebtors(),
-      listExpiringSoon(),
-      listPaymentTypes(),
-      isAdmin ? listRevenueByBankAccount(start, end) : Promise.resolve([]),
-      isAdmin ? listBankAccounts() : Promise.resolve([]),
-      isAdmin ? listBanks() : Promise.resolve([]),
-    ]);
+  // Started once, un-awaited, and shared by every section below that needs
+  // it (KpiSection, SubscriptionStatusSection, RevenueSection) -- each
+  // awaits the same promise instance, so get_dashboard_stats runs once per
+  // request no matter how many sections read from it, while every section
+  // still streams in independently via its own Suspense boundary.
+  const statsPromise = getDashboardStats(start, end);
 
   return (
     <div>
@@ -67,36 +46,43 @@ export default async function DashboardPage({
       </div>
 
       <div className="flex flex-col gap-6">
-        <DashboardKpiRow stats={stats} />
+        <Suspense fallback={<KpiSkeleton />}>
+          <KpiSection statsPromise={statsPromise} />
+        </Suspense>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <SubscriptionStatusBreakdown stats={stats} />
-          <RevenueByMethodBreakdown
-            stats={stats}
-            paymentTypes={paymentTypes}
-            accountRows={isAdmin ? revenueByAccount : undefined}
-            accounts={isAdmin ? bankAccounts : undefined}
-            banks={isAdmin ? banks : undefined}
-          />
+          <Suspense
+            fallback={<CardListSkeleton title="Suscripciones por estado" />}
+          >
+            <SubscriptionStatusSection statsPromise={statsPromise} />
+          </Suspense>
+          <Suspense
+            fallback={<CardListSkeleton title="Ingresos por método de pago" />}
+          >
+            <RevenueSection
+              statsPromise={statsPromise}
+              start={start}
+              end={end}
+              isAdmin={Boolean(isAdmin)}
+            />
+          </Suspense>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Clientes con saldo pendiente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DebtorsList debtors={debtors} />
-          </CardContent>
-        </Card>
+        <Suspense
+          fallback={
+            <CardListSkeleton title="Clientes con saldo pendiente" />
+          }
+        >
+          <DebtorsSection />
+        </Suspense>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Suscripciones por vencer (próximos 7 días)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ExpiringSoonList rows={expiringSoon} />
-          </CardContent>
-        </Card>
+        <Suspense
+          fallback={
+            <CardListSkeleton title="Suscripciones por vencer (próximos 7 días)" />
+          }
+        >
+          <ExpiringSoonSection />
+        </Suspense>
       </div>
     </div>
   );
