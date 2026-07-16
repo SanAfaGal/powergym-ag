@@ -32,21 +32,18 @@ export type PlanPrice = {
 
 export async function listPlans() {
   const supabase = await createClient();
-  const { data: plans, error } = await supabase
-    .from("plans")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("plans_with_current_price", {
+    p_active_only: false,
+  });
 
   if (error) throw error;
 
-  const withPrices = await Promise.all(
-    (plans ?? []).map(async (plan) => ({
-      ...(plan as Plan),
-      currentPrice: await currentPriceFor(plan.id),
-    }))
+  return ((data ?? []) as (Plan & { current_price: number | null })[]).map(
+    (row) => {
+      const { current_price, ...plan } = row;
+      return { ...plan, currentPrice: current_price };
+    }
   );
-
-  return withPrices;
 }
 
 export async function getPlan(id: string) {

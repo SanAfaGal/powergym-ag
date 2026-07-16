@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type SubscriptionStatus =
@@ -38,7 +39,12 @@ export type SubscriptionRow = Subscription & {
   payments: SubscriptionPayment[];
 };
 
-export type GlobalSubscriptionRow = Subscription & {
+// listSubscriptions only selects the columns the subscriptions list/table
+// actually renders (see below), not the full Subscription shape.
+export type GlobalSubscriptionRow = Pick<
+  Subscription,
+  "id" | "client_id" | "start_date" | "end_date" | "status" | "final_price"
+> & {
   plan_name: string;
   client_name: string;
   paid: number;
@@ -91,22 +97,39 @@ export async function listClientSubscriptions(
   });
 }
 
+const SUBSCRIPTIONS_PAGE_SIZE = 20;
+
 export async function listSubscriptions(
-  filters: { status?: string } = {}
-): Promise<GlobalSubscriptionRow[]> {
+  filters: { status?: string; page?: number } = {}
+): Promise<{
+  subscriptions: GlobalSubscriptionRow[];
+  total: number;
+  pageSize: number;
+}> {
   const supabase = await createClient();
   let query = supabase
     .from("subscriptions")
-    .select("*, plans(name), clients(first_name, last_name), payments(amount)")
+    .select(
+      "id, client_id, start_date, end_date, status, final_price, plans(name), clients(first_name, last_name), payments(amount)",
+      { count: "exact" }
+    )
     .order("start_date", { ascending: false });
 
   if (filters.status) query = query.eq("status", filters.status);
 
-  const { data, error } = await query;
+  const page = filters.page ?? 1;
+  const from = (page - 1) * SUBSCRIPTIONS_PAGE_SIZE;
+  const { data, count, error } = await query.range(
+    from,
+    from + SUBSCRIPTIONS_PAGE_SIZE - 1
+  );
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
-    const { plans, clients, payments, ...subscription } = row as Subscription & {
+  const subscriptions = (data ?? []).map((row) => {
+    const { plans, clients, payments, ...subscription } = row as unknown as Pick<
+      Subscription,
+      "id" | "client_id" | "start_date" | "end_date" | "status" | "final_price"
+    > & {
       plans: { name: string } | null;
       clients: { first_name: string; last_name: string } | null;
       payments: { amount: number }[] | null;
@@ -122,33 +145,30 @@ export async function listSubscriptions(
       remaining: Math.max(subscription.final_price - paid, 0),
     };
   });
+
+  return { subscriptions, total: count ?? 0, pageSize: SUBSCRIPTIONS_PAGE_SIZE };
 }
 
 export async function listActivePlansWithPrice(): Promise<PlanOption[]> {
   const supabase = await createClient();
-  const { data: plans, error } = await supabase
-    .from("plans")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("name");
+  const { data, error } = await supabase.rpc("plans_with_current_price", {
+    p_active_only: true,
+  });
 
   if (error) throw error;
 
-  return Promise.all(
-    (plans ?? []).map(async (plan) => {
-      const { data: price } = await supabase.rpc("plan_price_at", {
-        p_plan_id: plan.id,
-      });
-      return {
-        id: plan.id as string,
-        name: plan.name as string,
-        price: (price as number | null) ?? null,
-      };
-    })
-  );
+  return (
+    (data ?? []) as { id: string; name: string; current_price: number | null }[]
+  ).map((row) => ({
+    id: row.id,
+    name: row.name,
+    price: row.current_price,
+  }));
 }
 
-export async function listPaymentTypes(): Promise<PaymentType[]> {
+// React's cache() rather than next/cache's unstable_cache() -- see the note
+// on listDocumentTypes in src/modules/clients/queries.ts for why.
+export const listPaymentTypes = cache(async (): Promise<PaymentType[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("payment_types")
@@ -158,4 +178,4 @@ export async function listPaymentTypes(): Promise<PaymentType[]> {
 
   if (error) throw error;
   return (data ?? []) as PaymentType[];
-}
+});

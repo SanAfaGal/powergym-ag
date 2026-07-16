@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type CatalogEntry = { code: string; name: string };
@@ -36,7 +37,9 @@ export async function listActiveBankAccounts() {
   return (data ?? []) as BankAccount[];
 }
 
-export async function listBanks() {
+// React's cache() rather than next/cache's unstable_cache() -- see the note
+// on listDocumentTypes in src/modules/clients/queries.ts for why.
+export const listBanks = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("banks")
@@ -46,9 +49,9 @@ export async function listBanks() {
 
   if (error) throw error;
   return (data ?? []) as CatalogEntry[];
-}
+});
 
-export async function listBankAccountTypes() {
+export const listBankAccountTypes = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bank_account_types")
@@ -58,4 +61,4 @@ export async function listBankAccountTypes() {
 
   if (error) throw error;
   return (data ?? []) as CatalogEntry[];
-}
+});

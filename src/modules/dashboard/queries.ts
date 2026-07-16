@@ -114,11 +114,16 @@ export async function listRevenueByBankAccount(
     .sort((a, b) => b.total - a.total);
 }
 
+const DEBTORS_LIMIT = 10;
+const EXPIRING_SOON_LIMIT = 10;
+
 export async function listDebtors(): Promise<DebtorRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("*, plans(name), clients(first_name, last_name), payments(amount)")
+    .select(
+      "id, client_id, status, final_price, plans(name), clients(first_name, last_name), payments(amount)"
+    )
     .in("status", ["active", "pending_payment"]);
 
   if (error) throw error;
@@ -126,7 +131,7 @@ export async function listDebtors(): Promise<DebtorRow[]> {
   return (data ?? [])
     .map((row) => {
       const { id, client_id, status, final_price, plans, clients, payments } =
-        row as {
+        row as unknown as {
           id: string;
           client_id: string;
           status: SubscriptionStatus;
@@ -148,7 +153,8 @@ export async function listDebtors(): Promise<DebtorRow[]> {
       };
     })
     .filter((row) => row.remaining > 0)
-    .sort((a, b) => b.remaining - a.remaining);
+    .sort((a, b) => b.remaining - a.remaining)
+    .slice(0, DEBTORS_LIMIT);
 }
 
 export async function listExpiringSoon(days = 7): Promise<ExpiringRow[]> {
@@ -158,17 +164,20 @@ export async function listExpiringSoon(days = 7): Promise<ExpiringRow[]> {
 
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("*, plans(name), clients(first_name, last_name), payments(amount)")
+    .select(
+      "id, client_id, end_date, final_price, plans(name), clients(first_name, last_name), payments(amount)"
+    )
     .eq("status", "active")
     .gte("end_date", today)
     .lte("end_date", limit)
-    .order("end_date", { ascending: true });
+    .order("end_date", { ascending: true })
+    .limit(EXPIRING_SOON_LIMIT);
 
   if (error) throw error;
 
   return (data ?? []).map((row) => {
     const { id, client_id, end_date, final_price, plans, clients, payments } =
-      row as {
+      row as unknown as {
         id: string;
         client_id: string;
         end_date: string;

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type Client = {
@@ -37,13 +38,16 @@ export async function listClients({
     .order("created_at", { ascending: false });
 
   if (q) {
-    // commas would break the .or() filter's own syntax, so they're
-    // stripped rather than escaped -- no client name/DNI/alias/email needs
-    // one.
-    const pattern = `%${q.replace(/,/g, "")}%`;
-    query = query.or(
-      `first_name.ilike.${pattern},last_name.ilike.${pattern},dni_number.ilike.${pattern},alias.ilike.${pattern},email.ilike.${pattern}`
-    );
+    // search_text (generated column, see migration 0032) is already
+    // lowercased and accent-stripped, so the query side is normalized the
+    // same way -- otherwise "José" (stored unaccented as "jose") would
+    // never match a literal "é" typed by the user.
+    const normalized = q
+      .normalize("NFD")
+      .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+      .toLowerCase()
+      .replace(/,/g, "");
+    query = query.ilike("search_text", `%${normalized}%`);
   }
 
   if (status === "active") query = query.eq("is_active", true);
@@ -73,7 +77,13 @@ export async function getClient(id: string) {
   return data as Client;
 }
 
-export async function listDocumentTypes() {
+// React's cache() (request-scoped, see src/lib/auth/session.ts) rather than
+// next/cache's unstable_cache() -- these queries go through the per-request,
+// cookie-scoped Supabase client (RLS requires the caller's JWT to read even
+// staff-only catalogs), and unstable_cache forbids touching cookies() inside
+// its cached function. cache() dedupes repeat calls within one request/render
+// tree without hitting that restriction; it doesn't persist across requests.
+export const listDocumentTypes = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("document_types")
@@ -83,9 +93,9 @@ export async function listDocumentTypes() {
 
   if (error) throw error;
   return data as CatalogEntry[];
-}
+});
 
-export async function listGenderTypes() {
+export const listGenderTypes = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("gender_types")
@@ -95,4 +105,4 @@ export async function listGenderTypes() {
 
   if (error) throw error;
   return data as CatalogEntry[];
-}
+});
