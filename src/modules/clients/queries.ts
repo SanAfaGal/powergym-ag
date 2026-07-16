@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import type { SubscriptionStatus } from "@/modules/subscriptions";
 
 export type Client = {
   id: string;
@@ -18,24 +19,51 @@ export type Client = {
   created_at: string;
 };
 
+export type ClientWithSubscription = Client & {
+  subscription_id: string | null;
+  subscription_status: SubscriptionStatus | null;
+  plan_id: string | null;
+  plan_name: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  final_price: number | null;
+  paid: number | null;
+  remaining: number | null;
+  days_remaining: number | null;
+};
+
 export type CatalogEntry = { code: string; name: string };
+export type SortOption = "start_date" | "remaining" | "days_remaining";
 
 const PAGE_SIZE = 20;
+
+const SORT_CONFIG: Record<SortOption, { column: string; ascending: boolean }> = {
+  start_date: { column: "start_date", ascending: false },
+  remaining: { column: "remaining", ascending: false },
+  days_remaining: { column: "days_remaining", ascending: true },
+};
 
 export async function listClients({
   q,
   status,
+  subscriptionStatus,
+  planId,
+  hasBalance,
+  sort = "start_date",
   page = 1,
 }: {
   q?: string;
   status?: "active" | "inactive" | "all";
+  subscriptionStatus?: SubscriptionStatus | "none" | "all";
+  planId?: string;
+  hasBalance?: boolean;
+  sort?: SortOption;
   page?: number;
 }) {
   const supabase = await createClient();
   let query = supabase
-    .from("clients")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false });
+    .from("client_subscription_overview")
+    .select("*", { count: "exact" });
 
   if (q) {
     // search_text (generated column, see migration 0032) is already
@@ -53,13 +81,25 @@ export async function listClients({
   if (status === "active") query = query.eq("is_active", true);
   if (status === "inactive") query = query.eq("is_active", false);
 
+  if (subscriptionStatus === "none") {
+    query = query.is("subscription_id", null);
+  } else if (subscriptionStatus && subscriptionStatus !== "all") {
+    query = query.eq("subscription_status", subscriptionStatus);
+  }
+
+  if (planId) query = query.eq("plan_id", planId);
+  if (hasBalance) query = query.gt("remaining", 0);
+
+  const { column, ascending } = SORT_CONFIG[sort];
+  query = query.order(column, { ascending, nullsFirst: false });
+
   const from = (page - 1) * PAGE_SIZE;
   const { data, count, error } = await query.range(from, from + PAGE_SIZE - 1);
 
   if (error) throw error;
 
   return {
-    clients: (data ?? []) as Client[],
+    clients: (data ?? []) as ClientWithSubscription[],
     total: count ?? 0,
     pageSize: PAGE_SIZE,
   };
