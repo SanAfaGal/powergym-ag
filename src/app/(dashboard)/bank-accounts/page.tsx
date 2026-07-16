@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { isActiveAdmin } from "@/lib/auth/roles";
+import { getAuthContext } from "@/lib/auth/session";
 import {
   listBankAccounts,
   listBanks,
@@ -11,7 +11,10 @@ import {
 } from "@/modules/bank-accounts";
 
 export default async function BankAccountsPage() {
-  if (!(await isActiveAdmin())) redirect("/dashboard");
+  const auth = await getAuthContext();
+  if (!auth || auth.profile.role !== "admin" || !auth.profile.is_active) {
+    redirect("/dashboard");
+  }
 
   const [accounts, banks, accountTypes] = await Promise.all([
     listBankAccounts(),

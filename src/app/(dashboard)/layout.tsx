@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/auth/session";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import {
   SidebarInset,
@@ -12,27 +12,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await getAuthContext();
 
   // Defense in depth on top of src/middleware.ts -- should be unreachable.
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) redirect("/login");
+  if (!auth) redirect("/login");
 
   return (
     <SidebarProvider>
       <AppSidebar
-        fullName={profile.full_name}
-        isAdmin={profile.role === "admin"}
+        fullName={auth.profile.full_name}
+        isAdmin={auth.profile.role === "admin"}
       />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4 md:hidden">
