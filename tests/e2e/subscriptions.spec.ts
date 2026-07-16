@@ -21,14 +21,9 @@ test("admin can enroll a client, record a full payment, and see it become active
   await login(page, ADMIN);
 
   await page.goto("/clients");
-  // ClientFilters (client component) debounces its search box into a
-  // `router.push` that fires ~300ms after mount even with an empty query
-  // (the effect runs on initial mount too, not just on user input). That
-  // push re-renders the list right around when a click issued immediately
-  // after goto() would land, and can swallow the row-link navigation as a
-  // race. Let the debounce settle before interacting with the table.
-  await page.getByPlaceholder("Buscar por nombre o documento...").waitFor();
-  await page.waitForTimeout(400);
+  await page
+    .getByPlaceholder("Buscar por nombre, alias, documento o email...")
+    .waitFor();
   await page.getByRole("link", { name: "Maria Gomez" }).click();
   await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+$/);
 

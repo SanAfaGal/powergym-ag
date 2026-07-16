@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,8 +52,13 @@ export function ClientFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(defaultQuery);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const timeout = setTimeout(() => {
       const params = new URLSearchParams(searchParams);
       if (query) params.set("q", query);
