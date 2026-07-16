@@ -33,14 +33,15 @@ export type ClientWithSubscription = Client & {
 };
 
 export type CatalogEntry = { code: string; name: string };
-export type SortOption = "start_date" | "remaining" | "days_remaining";
+// days_remaining is the only column staff actually triage by (who's about
+// to expire / who's overdue); ascending surfaces the most urgent first.
+export type SortOption = "days_remaining_asc" | "days_remaining_desc";
 
 const PAGE_SIZE = 20;
 
 const SORT_CONFIG: Record<SortOption, { column: string; ascending: boolean }> = {
-  start_date: { column: "start_date", ascending: false },
-  remaining: { column: "remaining", ascending: false },
-  days_remaining: { column: "days_remaining", ascending: true },
+  days_remaining_asc: { column: "days_remaining", ascending: true },
+  days_remaining_desc: { column: "days_remaining", ascending: false },
 };
 
 export async function listClients({
@@ -49,7 +50,7 @@ export async function listClients({
   subscriptionStatus,
   planId,
   hasBalance,
-  sort = "start_date",
+  sort = "days_remaining_asc",
   page = 1,
 }: {
   q?: string;

@@ -49,7 +49,7 @@ export function ClientCards({
                     />
                   )}
                 </span>
-                {client.days_remaining != null && (
+                {client.days_remaining != null && client.days_remaining >= 0 && (
                   <span
                     className={`tabular-nums ${daysRemainingClass(
                       client.days_remaining

@@ -21,7 +21,7 @@ const VALID_SUBSCRIPTION_STATUSES = [
   "canceled",
   "none",
 ];
-const VALID_SORTS: SortOption[] = ["start_date", "remaining", "days_remaining"];
+const VALID_SORTS: SortOption[] = ["days_remaining_asc", "days_remaining_desc"];
 
 export default async function ClientsPage({
   searchParams,
@@ -51,7 +51,7 @@ export default async function ClientsPage({
   const hasBalance = params.hasBalance === "yes";
   const sort = VALID_SORTS.includes(params.sort as SortOption)
     ? (params.sort as SortOption)
-    : "start_date";
+    : "days_remaining_asc";
   const page = Math.max(1, Number(params.page) || 1);
 
   const today = bogotaToday();
@@ -77,7 +77,7 @@ export default async function ClientsPage({
       p.set("subscriptionStatus", subscriptionStatus);
     if (planId) p.set("planId", planId);
     if (hasBalance) p.set("hasBalance", "yes");
-    if (sort !== "start_date") p.set("sort", sort);
+    if (sort !== "days_remaining_asc") p.set("sort", sort);
     if (targetPage > 1) p.set("page", String(targetPage));
     const qs = p.toString();
     return qs ? `/clients?${qs}` : "/clients";

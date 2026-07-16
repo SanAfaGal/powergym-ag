@@ -77,12 +77,12 @@ export function ClientTable({
               </TableCell>
               <TableCell
                 className={`tabular-nums ${
-                  client.days_remaining != null
+                  client.days_remaining != null && client.days_remaining >= 0
                     ? daysRemainingClass(client.days_remaining)
                     : ""
                 }`}
               >
-                {client.days_remaining != null ? (
+                {client.days_remaining != null && client.days_remaining >= 0 ? (
                   client.days_remaining
                 ) : (
                   <span className="text-muted-foreground">—</span>

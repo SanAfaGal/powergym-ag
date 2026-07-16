@@ -1,25 +1,12 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDownIcon } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ArrowDownNarrowWide, ArrowUpNarrowWide } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const SORT_OPTIONS = [
-  { value: "start_date", label: "Fecha de inicio" },
-  { value: "remaining", label: "Saldo pendiente" },
-  { value: "days_remaining", label: "Días restantes" },
-] as const;
-
-const SORT_ITEMS = Object.fromEntries(
-  SORT_OPTIONS.map((opt) => [opt.value, opt.label])
-);
-
+// days_remaining is the only field staff sort by -- this is a direction
+// toggle, not a field picker. Ascending (soonest expiring / most overdue
+// first) is the default and most actionable order.
 export function ClientSortControl({
   sort,
   className,
@@ -30,32 +17,30 @@ export function ClientSortControl({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const ascending = sort !== "days_remaining_desc";
 
-  function setSort(value: string) {
+  function toggle() {
     const params = new URLSearchParams(searchParams);
-    if (value === "start_date") params.delete("sort");
-    else params.set("sort", value);
+    if (ascending) params.set("sort", "days_remaining_desc");
+    else params.delete("sort");
     params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  const Icon = ascending ? ArrowUpNarrowWide : ArrowDownNarrowWide;
+
   return (
-    <Select
-      items={SORT_ITEMS}
-      value={sort}
-      onValueChange={(v) => setSort(v ?? "start_date")}
+    <Button
+      type="button"
+      variant="outline"
+      onClick={toggle}
+      className={className}
+      aria-label={`Ordenar por días restantes, ${
+        ascending ? "ascendente" : "descendente"
+      }`}
     >
-      <SelectTrigger className={className} aria-label="Ordenar por">
-        <ArrowUpDownIcon className="size-3.5 text-muted-foreground" />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {SORT_OPTIONS.map((opt) => (
-          <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      <Icon className="size-3.5" />
+      Días restantes
+    </Button>
   );
 }
