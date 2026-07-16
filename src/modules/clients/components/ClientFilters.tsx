@@ -100,7 +100,7 @@ export function ClientFilters({
         />
         <Select
           value={planId || "all"}
-          onValueChange={(v) => setParam("planId", v, "all")}
+          onValueChange={(v) => setParam("planId", v ?? "all", "all")}
         >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Todos los planes" />

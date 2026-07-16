@@ -5,13 +5,37 @@ import {
   listClients,
   ClientList,
   ClientFilters,
+  ClientSortControl,
+  ClientIndicators,
   Pager,
+  type SortOption,
 } from "@/modules/clients";
+import { listActivePlansWithPrice, type SubscriptionStatus } from "@/modules/subscriptions";
+import { getDashboardStats } from "@/modules/dashboard";
+import { bogotaToday } from "@/lib/date/bogota";
+
+const VALID_SUBSCRIPTION_STATUSES = [
+  "active",
+  "pending_payment",
+  "scheduled",
+  "expired",
+  "canceled",
+  "none",
+];
+const VALID_SORTS: SortOption[] = ["start_date", "remaining", "days_remaining"];
 
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+    subscriptionStatus?: string;
+    planId?: string;
+    hasBalance?: string;
+    sort?: string;
+    page?: string;
+  }>;
 }) {
   const params = await searchParams;
   const q = params.q ?? "";
@@ -19,24 +43,59 @@ export default async function ClientsPage({
     params.status === "active" || params.status === "inactive"
       ? params.status
       : "all";
+  const subscriptionStatus = VALID_SUBSCRIPTION_STATUSES.includes(
+    params.subscriptionStatus ?? ""
+  )
+    ? (params.subscriptionStatus as SubscriptionStatus | "none")
+    : "all";
+  const planId = params.planId ?? "";
+  const hasBalance = params.hasBalance === "yes";
+  const sort = VALID_SORTS.includes(params.sort as SortOption)
+    ? (params.sort as SortOption)
+    : "start_date";
   const page = Math.max(1, Number(params.page) || 1);
 
-  const { clients, total, pageSize } = await listClients({ q, status, page });
+  const today = bogotaToday();
+  const [{ clients, total, pageSize }, plans, stats] = await Promise.all([
+    listClients({
+      q,
+      status,
+      subscriptionStatus,
+      planId: planId || undefined,
+      hasBalance,
+      sort,
+      page,
+    }),
+    listActivePlansWithPrice(),
+    getDashboardStats(`${today.slice(0, 7)}-01`, today),
+  ]);
 
   function buildHref(targetPage: number) {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (status !== "all") p.set("status", status);
+    if (subscriptionStatus !== "all")
+      p.set("subscriptionStatus", subscriptionStatus);
+    if (planId) p.set("planId", planId);
+    if (hasBalance) p.set("hasBalance", "yes");
+    if (sort !== "start_date") p.set("sort", sort);
     if (targetPage > 1) p.set("page", String(targetPage));
     const qs = p.toString();
     return qs ? `/clients?${qs}` : "/clients";
   }
 
+  const hasFilters =
+    Boolean(q) ||
+    status !== "all" ||
+    subscriptionStatus !== "all" ||
+    Boolean(planId) ||
+    hasBalance;
+
   return (
     <div>
       <PageHeader
         title="Clientes"
-        description="Buscá, registrá y gestioná los clientes del gimnasio."
+        description="Buscá, registrá y gestioná los clientes del gimnasio y sus suscripciones."
         actions={
           <Button render={<Link href="/clients/new" />} nativeButton={false}>
             Nuevo cliente
@@ -44,14 +103,23 @@ export default async function ClientsPage({
         }
       />
 
-      <div className="mb-4">
-        <ClientFilters defaultQuery={q} status={status} />
+      <div className="mb-6">
+        <ClientIndicators stats={stats} />
       </div>
 
-      <ClientList
-        clients={clients}
-        hasFilters={Boolean(q) || status !== "all"}
-      />
+      <div className="mb-4 flex flex-col gap-3">
+        <ClientFilters
+          defaultQuery={q}
+          status={status}
+          subscriptionStatus={subscriptionStatus}
+          planId={planId}
+          hasBalance={hasBalance}
+          plans={plans}
+        />
+        <ClientSortControl sort={sort} />
+      </div>
+
+      <ClientList clients={clients} hasFilters={hasFilters} />
 
       <div className="mt-4">
         <Pager
@@ -59,6 +127,7 @@ export default async function ClientsPage({
           total={total}
           pageSize={pageSize}
           buildHref={buildHref}
+          itemLabel="clientes"
         />
       </div>
     </div>
