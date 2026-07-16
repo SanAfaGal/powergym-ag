@@ -7,6 +7,12 @@
 -- keeps payment_type and bank_account_id consistent. Every assertion passes
 -- an explicit description (see 003_clients.test.sql for why that matters
 -- with pgtap 1.3.3 installed in this project).
+--
+-- The trigger's "requires_bank_account = true implies bank_account_id is
+-- required" direction was dropped in migration 0034 -- bank_account_id is
+-- always optional now, only the reverse direction (methods that don't use
+-- bank accounts can't have one) is still enforced. The assertion below is
+-- updated in place to match rather than left stale.
 begin;
 select plan(14);
 
@@ -58,15 +64,13 @@ select throws_ok(
   null,
   'cash payment with a bank_account_id is rejected (cash.requires_bank_account = false)'
 );
-select throws_ok(
+select lives_ok(
   $$ insert into public.payments (subscription_id, amount, payment_method)
      values (
        (select id from public.subscriptions where client_id = (select id from public.clients where dni_number = 'CATALOG-CLIENT-2')),
        50000, 'bank'
      ) $$,
-  'P0001',
-  null,
-  'bank payment without a bank_account_id is rejected (bank.requires_bank_account = true)'
+  'bank payment without a bank_account_id succeeds (optional since migration 0034)'
 );
 select lives_ok(
   $$ insert into public.payments (subscription_id, amount, payment_method)

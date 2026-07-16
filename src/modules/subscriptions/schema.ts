@@ -31,13 +31,11 @@ const amount = z
 
 const paymentMethod = z.string().min(1, "Seleccioná un método de pago");
 
-// bank_account_id is intentionally NOT required at the schema level --
-// whether it's required depends on the selected payment method's
-// requires_bank_account flag, which is catalog data loaded at render time,
-// not a fixed rule this static schema can encode. RecordPaymentDialog
-// checks it manually before submitting (see Task 4), and the DB trigger
-// enforce_payment_bank_account (migration 0012) is the actual source of
-// truth either way.
+// bank_account_id is always optional -- staff don't always know which
+// account received a bank payment at entry time. The DB trigger
+// enforce_payment_bank_account (migrations 0012, 0034) only rejects it in
+// the opposite direction: a payment method that doesn't use bank accounts
+// (e.g. cash) can't have one attached.
 export const paymentSchema = z.object({
   amount,
   payment_method: paymentMethod,

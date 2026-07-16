@@ -69,7 +69,11 @@ export function RecordPaymentDialog({
   });
 
   const selectedMethod = form.watch("payment_method");
-  const requiresBankAccount =
+  // requires_bank_account now only gates whether this payment method *can*
+  // carry a bank account, not whether it must -- staff don't always know
+  // which account received a transfer at entry time, so the field is
+  // optional wherever it's shown.
+  const usesBankAccount =
     paymentTypes.find((t) => t.code === selectedMethod)
       ?.requires_bank_account ?? false;
 
@@ -101,15 +105,9 @@ export function RecordPaymentDialog({
       });
       return;
     }
-    if (requiresBankAccount && !values.bank_account_id) {
-      form.setError("bank_account_id", {
-        message: "Seleccioná la cuenta que recibió el pago",
-      });
-      return;
-    }
     const result = await recordPayment(subscriptionId, clientId, {
       ...values,
-      bank_account_id: requiresBankAccount ? values.bank_account_id : undefined,
+      bank_account_id: usesBankAccount ? values.bank_account_id : undefined,
     });
     if ("error" in result) {
       setServerError(result.error);
@@ -185,13 +183,13 @@ export function RecordPaymentDialog({
                 </FormItem>
               )}
             />
-            {requiresBankAccount && (
+            {usesBankAccount && (
               <FormField
                 control={form.control}
                 name="bank_account_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cuenta que recibe</FormLabel>
+                    <FormLabel>Cuenta que recibe (opcional)</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="w-full">

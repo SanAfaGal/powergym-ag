@@ -125,7 +125,7 @@ Table payments {
   payment_date timestamptz [not null, default: `now()`]
   received_by uuid [ref: > profiles.id]
   notes text
-  bank_account_id uuid [ref: > bank_accounts.id, note: 'required iff payment_types.requires_bank_account for this row payment_method']
+  bank_account_id uuid [ref: > bank_accounts.id, note: 'optional; forbidden when payment_types.requires_bank_account is false for this row payment_method']
   created_at timestamptz [not null, default: `now()`]
 
   indexes {
@@ -168,7 +168,7 @@ Table payment_types {
   code text [pk]
   name text [not null]
   description text
-  requires_bank_account boolean [not null, default: true]
+  requires_bank_account boolean [not null, default: true, note: 'permits bank_account_id on payments of this method (optional, not mandatory) -- see migration 0034']
   is_active boolean [not null, default: true]
   created_at timestamptz [not null, default: `now()`]
 }
