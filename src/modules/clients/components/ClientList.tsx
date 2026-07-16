@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import type { Client } from "../queries";
+import type { ClientWithSubscription } from "../queries";
 import { ClientTable } from "./ClientTable";
 import { ClientCards } from "./ClientCards";
 
@@ -8,7 +8,7 @@ export function ClientList({
   clients,
   hasFilters,
 }: {
-  clients: Client[];
+  clients: ClientWithSubscription[];
   hasFilters: boolean;
 }) {
   if (clients.length === 0) {

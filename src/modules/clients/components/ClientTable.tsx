@@ -9,11 +9,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import type { Client } from "../queries";
+import type { ClientWithSubscription } from "../queries";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { ContactLinks } from "./ContactLinks";
+import { SubscriptionStatusBadge } from "@/modules/subscriptions";
+import { daysRemainingClass } from "../lib/daysRemainingClass";
 
-export function ClientTable({ clients }: { clients: Client[] }) {
+export function ClientTable({
+  clients,
+}: {
+  clients: ClientWithSubscription[];
+}) {
   return (
     <div className="hidden md:block">
       <Table>
@@ -21,10 +26,10 @@ export function ClientTable({ clients }: { clients: Client[] }) {
           <TableRow>
             <TableHead>Cliente</TableHead>
             <TableHead>Documento</TableHead>
-            <TableHead>Contacto</TableHead>
-            <TableHead className="hidden lg:table-cell">
-              Cliente desde
-            </TableHead>
+            <TableHead>Plan</TableHead>
+            <TableHead>Suscripción</TableHead>
+            <TableHead>Días restantes</TableHead>
+            <TableHead>Saldo pendiente</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
               Acciones
@@ -56,15 +61,39 @@ export function ClientTable({ clients }: { clients: Client[] }) {
                   <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
-              <TableCell className="tabular-nums">
-                {client.phone ? (
-                  <ContactLinks phone={client.phone} />
+              <TableCell>
+                {client.plan_name ?? (
+                  <span className="text-muted-foreground">
+                    Sin suscripción
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                {client.subscription_status ? (
+                  <SubscriptionStatusBadge status={client.subscription_status} />
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
-              <TableCell className="hidden tabular-nums lg:table-cell">
-                {new Date(client.created_at).toLocaleDateString("es-CO")}
+              <TableCell
+                className={`tabular-nums ${
+                  client.days_remaining != null
+                    ? daysRemainingClass(client.days_remaining)
+                    : ""
+                }`}
+              >
+                {client.days_remaining != null ? (
+                  client.days_remaining
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="tabular-nums">
+                {client.remaining != null && client.remaining > 0 ? (
+                  `$${client.remaining.toLocaleString("es-CO")}`
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </TableCell>
               <TableCell>
                 <StatusBadge isActive={client.is_active} />

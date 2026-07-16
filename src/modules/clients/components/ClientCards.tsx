@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import type { Client } from "../queries";
+import type { ClientWithSubscription } from "../queries";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { ContactLinks } from "./ContactLinks";
+import { daysRemainingClass } from "../lib/daysRemainingClass";
 
-export function ClientCards({ clients }: { clients: Client[] }) {
+export function ClientCards({
+  clients,
+}: {
+  clients: ClientWithSubscription[];
+}) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {clients.map((client) => (
@@ -33,6 +39,34 @@ export function ClientCards({ clients }: { clients: Client[] }) {
               </span>
             )}
             {client.phone && <ContactLinks phone={client.phone} />}
+            {client.plan_name ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  {client.plan_name}
+                  {client.subscription_status && (
+                    <SubscriptionStatusBadge
+                      status={client.subscription_status}
+                    />
+                  )}
+                </span>
+                {client.days_remaining != null && (
+                  <span
+                    className={`tabular-nums ${daysRemainingClass(
+                      client.days_remaining
+                    )}`}
+                  >
+                    {client.days_remaining} días
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span>Sin suscripción</span>
+            )}
+            {client.remaining != null && client.remaining > 0 && (
+              <span className="tabular-nums">
+                Saldo: ${client.remaining.toLocaleString("es-CO")}
+              </span>
+            )}
           </div>
         </Card>
       ))}
