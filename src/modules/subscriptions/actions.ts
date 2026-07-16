@@ -109,7 +109,6 @@ export async function createSubscription(
     };
   }
 
-  revalidatePath("/subscriptions");
   revalidatePath(`/clients/${clientId}`);
   return { success: true };
 }
@@ -143,7 +142,6 @@ export async function recordPayment(
     };
   }
 
-  revalidatePath("/subscriptions");
   revalidatePath(`/clients/${clientId}`);
   return { success: true };
 }
@@ -168,7 +166,6 @@ export async function cancelSubscription(
     return { error: "No se pudo cancelar la suscripción" };
   }
 
-  revalidatePath("/subscriptions");
   revalidatePath(`/clients/${clientId}`);
   return { success: true };
 }
@@ -206,7 +203,6 @@ export async function renewSubscription(
     };
   }
 
-  revalidatePath("/subscriptions");
   revalidatePath(`/clients/${clientId}`);
   return { success: true };
 }
