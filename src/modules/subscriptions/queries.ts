@@ -39,18 +39,6 @@ export type SubscriptionRow = Subscription & {
   payments: SubscriptionPayment[];
 };
 
-// listSubscriptions only selects the columns the subscriptions list/table
-// actually renders (see below), not the full Subscription shape.
-export type GlobalSubscriptionRow = Pick<
-  Subscription,
-  "id" | "client_id" | "start_date" | "end_date" | "status" | "final_price"
-> & {
-  plan_name: string;
-  client_name: string;
-  paid: number;
-  remaining: number;
-};
-
 export type PlanOption = { id: string; name: string; price: number | null };
 export type PaymentType = {
   code: string;
@@ -95,58 +83,6 @@ export async function listClientSubscriptions(
       payments: sortedPayments,
     };
   });
-}
-
-const SUBSCRIPTIONS_PAGE_SIZE = 20;
-
-export async function listSubscriptions(
-  filters: { status?: string; page?: number } = {}
-): Promise<{
-  subscriptions: GlobalSubscriptionRow[];
-  total: number;
-  pageSize: number;
-}> {
-  const supabase = await createClient();
-  let query = supabase
-    .from("subscriptions")
-    .select(
-      "id, client_id, start_date, end_date, status, final_price, plans(name), clients(first_name, last_name), payments(amount)",
-      { count: "exact" }
-    )
-    .order("start_date", { ascending: false });
-
-  if (filters.status) query = query.eq("status", filters.status);
-
-  const page = filters.page ?? 1;
-  const from = (page - 1) * SUBSCRIPTIONS_PAGE_SIZE;
-  const { data, count, error } = await query.range(
-    from,
-    from + SUBSCRIPTIONS_PAGE_SIZE - 1
-  );
-  if (error) throw error;
-
-  const subscriptions = (data ?? []).map((row) => {
-    const { plans, clients, payments, ...subscription } = row as unknown as Pick<
-      Subscription,
-      "id" | "client_id" | "start_date" | "end_date" | "status" | "final_price"
-    > & {
-      plans: { name: string } | null;
-      clients: { first_name: string; last_name: string } | null;
-      payments: { amount: number }[] | null;
-    };
-    const paid = sumPayments(payments);
-    return {
-      ...subscription,
-      plan_name: plans?.name ?? "",
-      client_name: clients
-        ? `${clients.first_name} ${clients.last_name}`
-        : "",
-      paid,
-      remaining: Math.max(subscription.final_price - paid, 0),
-    };
-  });
-
-  return { subscriptions, total: count ?? 0, pageSize: SUBSCRIPTIONS_PAGE_SIZE };
 }
 
 export async function listActivePlansWithPrice(): Promise<PlanOption[]> {

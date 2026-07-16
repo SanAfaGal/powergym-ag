@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
-  Receipt,
   Sun,
   UserCog,
   Users,
@@ -33,7 +32,6 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/plans", label: "Planes", icon: CreditCard },
-  { href: "/subscriptions", label: "Suscripciones", icon: Receipt },
 ];
 
 const ADMIN_NAV_LINKS = [
