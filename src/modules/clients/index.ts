@@ -11,7 +11,7 @@ export { createClient, updateClient, setClientActive } from "./actions";
 export { ClientForm } from "./components/ClientForm";
 export { ClientList } from "./components/ClientList";
 export { ClientFilters } from "./components/ClientFilters";
-export { Pager } from "./components/Pager";
+export { Pager } from "@/components/shared/Pager";
 export { StatusBadge } from "@/components/shared/StatusBadge";
 export { ContactLinks } from "./components/ContactLinks";
 export { EditClientDialog } from "./components/EditClientDialog";

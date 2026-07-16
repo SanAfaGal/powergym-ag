@@ -6,11 +6,13 @@ export function Pager({
   total,
   pageSize,
   buildHref,
+  itemLabel = "resultados",
 }: {
   page: number;
   total: number;
   pageSize: number;
   buildHref: (page: number) => string;
+  itemLabel?: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) return null;
@@ -18,7 +20,7 @@ export function Pager({
   return (
     <div className="flex items-center justify-between">
       <p className="text-sm text-muted-foreground">
-        Página {page} de {totalPages} · {total} clientes
+        Página {page} de {totalPages} · {total} {itemLabel}
       </p>
       <div className="flex gap-2">
         <Button
