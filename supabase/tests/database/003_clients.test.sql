@@ -28,7 +28,7 @@ select isnt(
   true,
   'clients.phone is nullable (optional per schema decision)'
 );
-select has_index('public', 'clients', 'clients_name_trgm_idx', 'clients_name_trgm_idx exists');
+select has_index('public', 'clients', 'clients_search_text_trgm_idx', 'clients_search_text_trgm_idx exists');
 
 select * from finish();
 rollback;

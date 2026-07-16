@@ -125,6 +125,7 @@ Table payments {
   indexes {
     subscription_id [name: 'payments_subscription_idx']
     payment_date [name: 'payments_date_idx']
+    bank_account_id [name: 'payments_bank_account_id_idx', note: 'partial: where bank_account_id is not null']
   }
 
   Note: 'Append-only — no UPDATE/DELETE grants. subscription_id: on delete cascade. enforce_payment_bank_account trigger keeps bank_account_id consistent with the payment_type.'
