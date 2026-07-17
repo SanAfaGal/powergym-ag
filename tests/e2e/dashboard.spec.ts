@@ -25,28 +25,29 @@ test("admin sees dashboard KPIs, breakdowns, and can filter by date range", asyn
 
   // Default range is the current Bogota month-to-date (DashboardPage falls
   // back to `${today.slice(0, 7)}-01`..today when no ?start=/?end= is set),
-  // reflected in the two DashboardFilters date inputs.
+  // reflected in the two DashboardFilters date pickers. DatePicker (a
+  // Popover+Calendar button, not a native input) exposes the raw
+  // "yyyy-MM-dd" value via data-value -- its visible text is a localized
+  // display string ("17 jul 2026"), not the value.
   const bogotaToday = await page.evaluate(() =>
     new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" })
   );
   const monthStart = `${bogotaToday.slice(0, 7)}-01`;
-  await expect(page.getByLabel("Desde")).toHaveValue(monthStart);
-  await expect(page.getByLabel("Hasta")).toHaveValue(bogotaToday);
+  await expect(page.getByLabel("Desde")).toHaveAttribute("data-value", monthStart);
+  await expect(page.getByLabel("Hasta")).toHaveAttribute("data-value", bogotaToday);
 
   // Status and revenue-by-method breakdown sections render.
   await expect(page.getByText("Suscripciones por estado")).toBeVisible();
   await expect(page.getByText("Ingresos por método de pago")).toBeVisible();
 
   // Exercise the date-range filter.
-  const hastaInput = page.getByLabel("Hasta");
+  const hastaButton = page.getByLabel("Hasta");
   // DashboardFilters is a client component; the SSR'd HTML already shows
-  // the right value/content before hydration attaches the onChange
-  // listener, so an assertion against that content can pass before
-  // hydration finishes. Wait for the input to be interactive and let
-  // hydration settle before driving it, or fill() below can race React
-  // attaching its listeners and silently no-op (observed while writing
-  // this test: fill() would set the DOM value but never call pushRange).
-  await hastaInput.waitFor();
+  // the right value/content before hydration attaches the click handler,
+  // so an assertion against that content can pass before hydration
+  // finishes. Wait for the control to be interactive and let hydration
+  // settle before driving it.
+  await hastaButton.waitFor();
   await page.waitForTimeout(300);
 
   const revenueValue = page
@@ -57,12 +58,26 @@ test("admin sees dashboard KPIs, breakdowns, and can filter by date range", asyn
   // month, so some revenue should show before we narrow the range below.
   await expect(revenueValue).not.toHaveText("$0");
 
-  // Moving "Hasta" before "Desde" pushes both params to the URL and, since
-  // the RPC's `between p_start and p_end` can never match when
-  // p_end < p_start, deterministically zeroes revenue_in_range regardless
-  // of exactly what payments exist -- a stronger, non-brittle way to prove
-  // the filter round-trips to the server than asserting an exact total.
-  await hastaInput.fill("2000-01-01");
-  await expect(page).toHaveURL(new RegExp(`start=${monthStart}.*end=2000-01-01`));
+  // Moving "Hasta" to the 15th of the previous month pushes both params to
+  // the URL and, since the RPC's `between p_start and p_end` can never
+  // match when p_end < p_start, deterministically zeroes revenue_in_range
+  // regardless of exactly what payments exist -- a stronger, non-brittle
+  // way to prove the filter round-trips to the server than asserting an
+  // exact total.
+  await hastaButton.click();
+  await page.getByRole("button", { name: "Go to the Previous Month" }).click();
+  await page
+    .locator('[data-slot="calendar"]')
+    .getByRole("button", { name: /, 15 de /})
+    .click();
+
+  const [year, month] = monthStart.split("-").map(Number);
+  const prevMonth15 = new Date(Date.UTC(year, month - 2, 15))
+    .toISOString()
+    .slice(0, 10);
+
+  await expect(page).toHaveURL(
+    new RegExp(`start=${monthStart}.*end=${prevMonth15}`)
+  );
   await expect(revenueValue).toHaveText("$0");
 });

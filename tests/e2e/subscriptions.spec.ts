@@ -49,12 +49,17 @@ test("admin can enroll a client, record a full payment, and see it become active
 
   // EnrollDialog now defaults "Fecha de inicio" to the Bogota-local date
   // (fixed after this test originally caught it defaulting via UTC
-  // instead). Setting it explicitly here anyway keeps this assertion's
-  // outcome independent of that default regardless of wall-clock time.
+  // instead). Assert it explicitly here (via DatePicker's data-value, its
+  // raw "yyyy-MM-dd" -- the visible text is a localized display string)
+  // rather than assuming it, so this test still catches that regression
+  // independent of wall-clock time.
   const bogotaToday = await page.evaluate(() =>
     new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" })
   );
-  await page.getByLabel("Fecha de inicio").fill(bogotaToday);
+  await expect(page.getByLabel("Fecha de inicio")).toHaveAttribute(
+    "data-value",
+    bogotaToday
+  );
 
   await page.getByRole("button", { name: "Enrolar" }).click();
 
