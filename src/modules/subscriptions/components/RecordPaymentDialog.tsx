@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Banknote, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export function RecordPaymentDialog({
     },
   });
 
-  const selectedMethod = form.watch("payment_method");
+  const selectedMethod = useWatch({ control: form.control, name: "payment_method" });
   // requires_bank_account now only gates whether this payment method *can*
   // carry a bank account, not whether it must -- staff don't always know
   // which account received a transfer at entry time, so the field is

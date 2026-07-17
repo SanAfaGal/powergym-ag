@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,8 @@ export function EnrollDialog({
     resolver: zodResolver(subscriptionSchema),
     defaultValues: { plan_id: "", start_date: bogotaToday(), discount_amount: 0 },
   });
-  const selectedPlan = plans.find((p) => p.id === form.watch("plan_id"));
+  const planId = useWatch({ control: form.control, name: "plan_id" });
+  const selectedPlan = plans.find((p) => p.id === planId);
 
   async function handleSubmit(values: SubscriptionInput) {
     setServerError(null);
