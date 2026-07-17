@@ -45,7 +45,9 @@ export function RevenueByMethodBreakdown({
             No hay ingresos registrados en este rango
           </p>
         ) : (
-          <ul className="flex flex-col gap-4">
+          // Capped height so a wide spread of accounts/methods doesn't blow
+          // past the Suspense skeleton's size and shift the layout (CLS)
+          <ul className="flex max-h-64 flex-col gap-4 overflow-y-auto">
             {showByAccount &&
               accountRows.map((row) => {
                 const account = accounts?.find(

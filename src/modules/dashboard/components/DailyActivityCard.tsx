@@ -32,7 +32,9 @@ export function DailyActivityCard({
                 {formatMoney(total)}
               </span>
             </div>
-            <ul className="flex flex-col gap-1.5">
+            {/* Capped height so a busy day doesn't blow past the Suspense
+                skeleton's size and shift the rest of the dashboard (CLS) */}
+            <ul className="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
               {payments.map((p) => (
                 <li
                   key={p.payment_id}

@@ -53,7 +53,9 @@ export default async function DashboardPage({
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Suspense
-            fallback={<CardListSkeleton title="Suscripciones por estado" />}
+            fallback={
+              <CardListSkeleton title="Suscripciones por estado" rows={5} />
+            }
           >
             <SubscriptionStatusSection statsPromise={statsPromise} />
           </Suspense>
