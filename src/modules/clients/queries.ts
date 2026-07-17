@@ -40,9 +40,14 @@ export type SortOption = "days_remaining_asc" | "days_remaining_desc";
 
 const PAGE_SIZE = 20;
 
+// sort_days_remaining (migration 0040) mirrors days_remaining but nulls out
+// negatives -- an expired subscription's days_remaining is a large negative
+// number, which would otherwise sort to the very top of "soonest first"
+// ahead of clients who actually still have days left. nullsFirst: false
+// below then groups expired/no-subscription clients at the end either way.
 const SORT_CONFIG: Record<SortOption, { column: string; ascending: boolean }> = {
-  days_remaining_asc: { column: "days_remaining", ascending: true },
-  days_remaining_desc: { column: "days_remaining", ascending: false },
+  days_remaining_asc: { column: "sort_days_remaining", ascending: true },
+  days_remaining_desc: { column: "sort_days_remaining", ascending: false },
 };
 
 type ClientFilterParams = {

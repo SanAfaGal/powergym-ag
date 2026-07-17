@@ -116,6 +116,9 @@ Table subscriptions {
 // LEFT JOINed to their highest-priority subscription (active >
 // pending_payment > scheduled > expired > canceled, tied by start_date desc
 // then created_at desc), with paid/remaining/days_remaining computed.
+// sort_days_remaining (migration 0040) is days_remaining with negatives
+// nulled out, so "closest to expiring" sorts don't rank overdue clients
+// first.
 // security_invoker -- respects clients/subscriptions/payments/plans RLS.
 
 Table payments {
