@@ -90,7 +90,7 @@ export function ClientFilters({
 }) {
   const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
   const activeCount = [
-    status !== "all",
+    status !== "active",
     subscriptionStatus !== "all",
     Boolean(planId),
     hasBalance,
@@ -191,7 +191,7 @@ export function ClientFilters({
             aria-label="Estado del cliente"
             options={STATUS_OPTIONS}
             value={status}
-            onChange={(v) => setParam("status", v, "all")}
+            onChange={(v) => setParam("status", v, "active")}
           />
         </div>
         <div className="flex w-56 flex-col gap-1.5">

@@ -41,9 +41,11 @@ export default async function ClientsPage({
   const params = await searchParams;
   const q = params.q ?? "";
   const status =
-    params.status === "active" || params.status === "inactive"
+    params.status === "active" ||
+    params.status === "inactive" ||
+    params.status === "all"
       ? params.status
-      : "all";
+      : "active";
   const subscriptionStatus = VALID_SUBSCRIPTION_STATUSES.includes(
     params.subscriptionStatus ?? ""
   )
@@ -86,7 +88,7 @@ export default async function ClientsPage({
   function buildHref(targetPage: number) {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
-    if (status !== "all") p.set("status", status);
+    if (status !== "active") p.set("status", status);
     if (subscriptionStatus !== "all")
       p.set("subscriptionStatus", subscriptionStatus);
     if (planId) p.set("planId", planId);
@@ -103,7 +105,7 @@ export default async function ClientsPage({
 
   const hasFilters =
     Boolean(q) ||
-    status !== "all" ||
+    status !== "active" ||
     subscriptionStatus !== "all" ||
     Boolean(planId) ||
     hasBalance ||
