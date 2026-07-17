@@ -14,7 +14,12 @@ export default async function DashboardLayout({
 }) {
   const auth = await getAuthContext();
 
-  // Defense in depth on top of src/middleware.ts -- should be unreachable.
+  // getAuthContext trusts the profile src/proxy.ts already validated and
+  // forwarded via header for this request -- should be unreachable in
+  // normal operation. Falls back to an independent check only for requests
+  // that somehow reached here without going through middleware, so this
+  // redirect is the backstop for that fallback failing, not a routine
+  // re-validation.
   if (!auth) redirect("/login");
 
   return (

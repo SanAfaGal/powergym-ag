@@ -20,7 +20,7 @@ export async function proxy(request: NextRequest) {
   // regardless of `is_active`, so this read is never blocked by RLS.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_active")
+    .select("id, full_name, role, is_active")
     .eq("id", user.id)
     .single();
 
@@ -48,7 +48,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return supabaseResponse;
+  // Forward the validated user + profile to the Server Component tree via a
+  // request header -- getAuthContext (src/lib/auth/session.ts) trusts this
+  // instead of re-validating the JWT and re-querying the profile itself.
+  // Middleware is the sole point of session validation for every request
+  // this matcher covers; getAuthContext keeps an independent fallback check
+  // only for requests that somehow reach it without going through here.
+  // Recomputed fresh on every request after validation, so a client can't
+  // forge this header: whatever it sent gets overwritten here before the
+  // request is forwarded downstream.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-staff-profile", JSON.stringify(profile));
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie);
+  });
+  return response;
 }
 
 export const config = {
