@@ -24,7 +24,7 @@ export function PlanTable({ plans }: { plans: PlanRow[] }) {
             <TableHead>Duración</TableHead>
             <TableHead>Precio</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
+            <TableHead className="sticky right-0 bg-background text-right transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--primary)_5%)]">
               Acciones
             </TableHead>
           </TableRow>
@@ -50,7 +50,7 @@ export function PlanTable({ plans }: { plans: PlanRow[] }) {
               <TableCell>
                 <StatusBadge isActive={plan.is_active} />
               </TableCell>
-              <TableCell className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
+              <TableCell className="sticky right-0 bg-background text-right transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--primary)_5%)]">
                 <Button
                   render={<Link href={`/plans/${plan.id}`} />}
                   nativeButton={false}

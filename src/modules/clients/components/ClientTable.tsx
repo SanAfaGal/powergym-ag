@@ -31,7 +31,7 @@ export function ClientTable({
             <TableHead>Días restantes</TableHead>
             <TableHead>Saldo pendiente</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
+            <TableHead className="sticky right-0 bg-background text-right transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--primary)_5%)]">
               Acciones
             </TableHead>
           </TableRow>
@@ -108,7 +108,7 @@ export function ClientTable({
               <TableCell>
                 <StatusBadge isActive={client.is_active} />
               </TableCell>
-              <TableCell className="sticky right-0 bg-background text-right group-hover/row:bg-[color-mix(in_oklch,var(--background),var(--primary)_5%)]">
+              <TableCell className="sticky right-0 bg-background text-right transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--primary)_5%)]">
                 <Button
                   render={<Link href={`/clients/${client.id}`} />}
                   nativeButton={false}
