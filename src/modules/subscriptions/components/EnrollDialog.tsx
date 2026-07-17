@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
+import { DatePicker } from "@/components/shared/DatePicker";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
   SelectContent,
@@ -74,6 +76,7 @@ export function EnrollDialog({
       setServerError(result.error);
       return;
     }
+    toast.success("Suscripción creada");
     setOpen(false);
     form.reset({ plan_id: "", start_date: bogotaToday(), discount_amount: 0 });
   }
@@ -129,7 +132,7 @@ export function EnrollDialog({
                 <FormItem>
                   <FormLabel>Fecha de inicio</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <DatePicker {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -154,13 +157,13 @@ export function EnrollDialog({
             {serverError && (
               <p className="text-sm text-destructive">{serverError}</p>
             )}
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
+            <SubmitButton
+              pending={form.formState.isSubmitting}
+              pendingLabel="Guardando..."
               className="w-full sm:w-fit"
             >
-              {form.formState.isSubmitting ? "Guardando..." : "Enrolar"}
-            </Button>
+              Enrolar
+            </SubmitButton>
           </form>
         </Form>
       </DialogContent>

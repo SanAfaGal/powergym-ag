@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
+import { DatePicker } from "@/components/shared/DatePicker";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,7 @@ export function SchedulePriceDialog({
       setServerError(result.error);
       return;
     }
+    toast.success("Precio programado");
     setOpen(false);
   }
 
@@ -97,7 +100,7 @@ export function SchedulePriceDialog({
                 <FormItem>
                   <FormLabel>Fecha efectiva</FormLabel>
                   <FormControl>
-                    <Input type="date" min={bogotaToday()} {...field} />
+                    <DatePicker min={bogotaToday()} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -106,13 +109,13 @@ export function SchedulePriceDialog({
             {serverError && (
               <p className="text-sm text-destructive">{serverError}</p>
             )}
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
+            <SubmitButton
+              pending={form.formState.isSubmitting}
+              pendingLabel="Guardando..."
               className="w-full sm:w-fit"
             >
-              {form.formState.isSubmitting ? "Guardando..." : "Programar"}
-            </Button>
+              Programar
+            </SubmitButton>
           </form>
         </Form>
       </DialogContent>

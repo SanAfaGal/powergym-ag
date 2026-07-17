@@ -4,8 +4,8 @@ import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { bogotaToday } from "@/lib/date/bogota";
 
 export function DailyActivityFilter({ date }: { date: string }) {
@@ -26,11 +26,10 @@ export function DailyActivityFilter({ date }: { date: string }) {
     <div className="flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-1">
         <Label htmlFor="activity-date">Actividad del día</Label>
-        <Input
+        <DatePicker
           id="activity-date"
-          type="date"
           value={date}
-          onChange={(e) => pushDate(e.target.value)}
+          onChange={pushDate}
           className="w-auto"
         />
       </div>

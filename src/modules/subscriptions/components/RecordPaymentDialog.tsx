@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Banknote, Landmark } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
+import { DatePicker } from "@/components/shared/DatePicker";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
   SelectContent,
@@ -116,6 +119,7 @@ export function RecordPaymentDialog({
       setServerError(result.error);
       return;
     }
+    toast.success("Pago registrado");
     setOpen(false);
   }
 
@@ -159,7 +163,7 @@ export function RecordPaymentDialog({
                 <FormItem>
                   <FormLabel>Fecha de pago</FormLabel>
                   <FormControl>
-                    <Input type="date" max={bogotaToday()} {...field} />
+                    <DatePicker max={bogotaToday()} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -250,15 +254,13 @@ export function RecordPaymentDialog({
             {serverError && (
               <p className="text-sm text-destructive">{serverError}</p>
             )}
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
+            <SubmitButton
+              pending={form.formState.isSubmitting}
+              pendingLabel="Guardando..."
               className="w-full sm:w-fit"
             >
-              {form.formState.isSubmitting
-                ? "Guardando..."
-                : "Registrar pago"}
-            </Button>
+              Registrar pago
+            </SubmitButton>
           </form>
         </Form>
       </DialogContent>

@@ -5,8 +5,8 @@ import { format, startOfWeek } from "date-fns";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { bogotaToday } from "@/lib/date/bogota";
 
 export function DashboardFilters({
@@ -48,21 +48,19 @@ export function DashboardFilters({
     <div className="flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-1">
         <Label htmlFor="dashboard-start">Desde</Label>
-        <Input
+        <DatePicker
           id="dashboard-start"
-          type="date"
           value={start}
-          onChange={(e) => pushRange(e.target.value, end)}
+          onChange={(value) => pushRange(value, end)}
           className="w-auto"
         />
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="dashboard-end">Hasta</Label>
-        <Input
+        <DatePicker
           id="dashboard-end"
-          type="date"
           value={end}
-          onChange={(e) => pushRange(start, e.target.value)}
+          onChange={(value) => pushRange(start, value)}
           className="w-auto"
         />
       </div>
