@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Prefers router.back() so the user lands back on the exact list URL they
 // left (filters/sort/page intact) instead of a clean list. Falls back to
@@ -31,13 +32,15 @@ export function BackLink({ href, label }: { href: string; label: string }) {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="sm"
       onClick={handleClick}
-      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      className="mb-4 text-muted-foreground"
     >
       <ArrowLeft className="size-3.5" />
       Volver a {label}
-    </button>
+    </Button>
   );
 }
