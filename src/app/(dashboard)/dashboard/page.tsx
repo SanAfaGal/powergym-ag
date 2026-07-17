@@ -9,18 +9,21 @@ import {
   RevenueSection,
   KpiSkeleton,
   CardListSkeleton,
+  DailyActivityFilter,
+  DailyActivitySection,
 } from "@/modules/dashboard";
 import { bogotaToday } from "@/lib/date/bogota";
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string }>;
+  searchParams: Promise<{ start?: string; end?: string; activityDate?: string }>;
 }) {
   const params = await searchParams;
   const today = bogotaToday();
   const start = params.start ?? `${today.slice(0, 7)}-01`;
   const end = params.end ?? today;
+  const activityDate = params.activityDate ?? today;
 
   const auth = await getAuthContext();
   const isAdmin = auth?.profile.role === "admin";
@@ -63,6 +66,17 @@ export default async function DashboardPage({
               end={end}
               isAdmin={Boolean(isAdmin)}
             />
+          </Suspense>
+        </div>
+
+        <div>
+          <div className="mb-4">
+            <DailyActivityFilter date={activityDate} />
+          </div>
+          <Suspense
+            fallback={<CardListSkeleton title="Actividad diaria" rows={5} />}
+          >
+            <DailyActivitySection date={activityDate} />
           </Suspense>
         </div>
       </div>

@@ -39,6 +39,28 @@ export async function getDashboardStats(
   return data as DashboardStats;
 }
 
+export type DailyActivityPayment = {
+  payment_id: string;
+  client_id: string;
+  client_name: string;
+  amount: number;
+  payment_method: string;
+  payment_method_name: string;
+  plan_name: string;
+};
+
+export async function getDailyActivity(
+  date: string
+): Promise<DailyActivityPayment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_daily_activity", {
+    p_date: date,
+  });
+
+  if (error) throw error;
+  return data as DailyActivityPayment[];
+}
+
 export async function listRevenueByBankAccount(
   start: string,
   end: string
