@@ -1,6 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,11 +12,14 @@ export function DailyActivityFilter({ date }: { date: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   function pushDate(nextDate: string) {
     const params = new URLSearchParams(searchParams);
     params.set("activityDate", nextDate || bogotaToday());
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`);
+    });
   }
 
   return (
@@ -37,6 +42,9 @@ export function DailyActivityFilter({ date }: { date: string }) {
       >
         Hoy
       </Button>
+      {isPending && (
+        <Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />
+      )}
     </div>
   );
 }

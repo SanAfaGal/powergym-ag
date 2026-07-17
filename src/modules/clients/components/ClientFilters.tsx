@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronDownIcon,
+  Loader2Icon,
   SearchIcon,
   SlidersHorizontalIcon,
   WalletIcon,
@@ -93,6 +94,11 @@ export function ClientFilters({
   const [query, setQuery] = useState(defaultQuery);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const isFirstRender = useRef(true);
+  // Refines the same filtered view rather than navigating to a new one --
+  // replace() so tweaking 5 filters doesn't leave 5 back-button stops, and
+  // startTransition() so isPending can drive a "working on it" indicator
+  // instead of the UI just sitting frozen for the round trip.
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -104,7 +110,9 @@ export function ClientFilters({
       if (query) params.set("q", query);
       else params.delete("q");
       params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`);
+      });
     }, 300);
     return () => clearTimeout(timeout);
     // only re-run when the debounced query itself changes -- reacting to
@@ -117,7 +125,9 @@ export function ClientFilters({
     if (value === defaultValue) params.delete(key);
     else params.set(key, value);
     params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`);
+    });
   }
 
   function setDateParam(key: "expiresFrom" | "expiresTo", value: string) {
@@ -125,14 +135,18 @@ export function ClientFilters({
     if (value) params.set(key, value);
     else params.delete(key);
     params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`);
+    });
   }
 
   function clearFilters() {
     const params = new URLSearchParams(searchParams);
     for (const key of FILTER_KEYS) params.delete(key);
     params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`);
+    });
   }
 
   const planItems = {
@@ -267,7 +281,11 @@ export function ClientFilters({
   function searchInput() {
     return (
       <div className="relative">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        {isPending ? (
+          <Loader2Icon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+        ) : (
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        )}
         <Input
           placeholder="Buscar por nombre, alias, documento o email..."
           value={query}

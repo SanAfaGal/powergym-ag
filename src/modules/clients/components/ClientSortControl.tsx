@@ -1,7 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDownNarrowWide, ArrowUpNarrowWide } from "lucide-react";
+import { ArrowDownNarrowWide, ArrowUpNarrowWide, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // days_remaining is the only field staff sort by -- this is a direction
@@ -18,13 +19,16 @@ export function ClientSortControl({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const ascending = sort !== "days_remaining_desc";
+  const [isPending, startTransition] = useTransition();
 
   function toggle() {
     const params = new URLSearchParams(searchParams);
     if (ascending) params.set("sort", "days_remaining_desc");
     else params.delete("sort");
     params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`);
+    });
   }
 
   const Icon = ascending ? ArrowUpNarrowWide : ArrowDownNarrowWide;
@@ -39,7 +43,7 @@ export function ClientSortControl({
         ascending ? "ascendente" : "descendente"
       }`}
     >
-      <Icon className="size-3.5" />
+      {isPending ? <Loader2Icon className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />}
       Días restantes
     </Button>
   );
