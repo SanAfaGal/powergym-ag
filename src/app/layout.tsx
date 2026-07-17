@@ -13,7 +13,11 @@ const manrope = Manrope({
 const quicksand = Quicksand({
   variable: "--font-quicksand",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  // 600 isn't used anywhere -- every font-heading element pairs with either
+  // font-medium (500, card/dialog/sheet titles) or font-bold (700, page
+  // titles), never font-semibold. Declaring it anyway made Next.js preload
+  // a font file the browser never actually used.
+  weight: ["500", "700"],
 });
 
 export const metadata: Metadata = {
