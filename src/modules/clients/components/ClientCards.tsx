@@ -49,15 +49,25 @@ export function ClientCards({
                     />
                   )}
                 </span>
-                {client.days_remaining != null && client.days_remaining >= 0 && (
-                  <span
-                    className={`tabular-nums ${daysRemainingClass(
-                      client.days_remaining
-                    )}`}
-                  >
-                    {client.days_remaining} días
-                  </span>
-                )}
+                {client.days_remaining != null &&
+                  client.days_remaining >= 0 &&
+                  client.end_date && (
+                    <span className="flex flex-col items-end gap-0.5">
+                      <span
+                        className={`tabular-nums font-medium ${daysRemainingClass(
+                          client.days_remaining
+                        )}`}
+                      >
+                        {client.days_remaining} días
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        vence{" "}
+                        {new Date(
+                          `${client.end_date}T00:00:00`
+                        ).toLocaleDateString("es-CO")}
+                      </span>
+                    </span>
+                  )}
               </div>
             ) : (
               <span>Sin suscripción</span>

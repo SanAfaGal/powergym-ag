@@ -44,28 +44,23 @@ const SORT_CONFIG: Record<SortOption, { column: string; ascending: boolean }> = 
   days_remaining_desc: { column: "days_remaining", ascending: false },
 };
 
-export async function listClients({
-  q,
-  status,
-  subscriptionStatus,
-  planId,
-  hasBalance,
-  sort = "days_remaining_asc",
-  page = 1,
-}: {
+type ClientFilterParams = {
   q?: string;
   status?: "active" | "inactive" | "all";
-  subscriptionStatus?: SubscriptionStatus | "none" | "all";
   planId?: string;
   hasBalance?: boolean;
-  sort?: SortOption;
-  page?: number;
-}) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("client_subscription_overview")
-    .select("*", { count: "exact" });
+};
 
+// Shared by listClients (paginated table) and listExpiringClients (unpaged
+// "Copiar lista" export) so the two never drift -- otherwise the copied text
+// could include clients the visible, filtered table excludes.
+function applyClientFilters<
+  Query extends {
+    ilike(column: string, pattern: string): Query;
+    eq(column: string, value: unknown): Query;
+    gt(column: string, value: unknown): Query;
+  },
+>(query: Query, { q, status, planId, hasBalance }: ClientFilterParams): Query {
   if (q) {
     // search_text (generated column, see migration 0032) is already
     // lowercased and accent-stripped, so the query side is normalized the
@@ -81,15 +76,49 @@ export async function listClients({
 
   if (status === "active") query = query.eq("is_active", true);
   if (status === "inactive") query = query.eq("is_active", false);
+  if (planId) query = query.eq("plan_id", planId);
+  if (hasBalance) query = query.gt("remaining", 0);
 
-  if (subscriptionStatus === "none") {
+  return query;
+}
+
+export async function listClients({
+  q,
+  status,
+  subscriptionStatus,
+  planId,
+  hasBalance,
+  expiresFrom,
+  expiresTo,
+  sort = "days_remaining_asc",
+  page = 1,
+}: ClientFilterParams & {
+  subscriptionStatus?: SubscriptionStatus | "none" | "all";
+  expiresFrom?: string;
+  expiresTo?: string;
+  sort?: SortOption;
+  page?: number;
+}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("client_subscription_overview")
+    .select("*", { count: "exact" });
+
+  query = applyClientFilters(query, { q, status, planId, hasBalance });
+
+  if (expiresFrom && expiresTo) {
+    // "Vencimientos" only ever means active subscriptions ending in this
+    // window -- overrides subscriptionStatus rather than combining with it,
+    // since the two are mutually exclusive ways of slicing the same column.
+    query = query
+      .eq("subscription_status", "active")
+      .gte("end_date", expiresFrom)
+      .lte("end_date", expiresTo);
+  } else if (subscriptionStatus === "none") {
     query = query.is("subscription_id", null);
   } else if (subscriptionStatus && subscriptionStatus !== "all") {
     query = query.eq("subscription_status", subscriptionStatus);
   }
-
-  if (planId) query = query.eq("plan_id", planId);
-  if (hasBalance) query = query.gt("remaining", 0);
 
   const { column, ascending } = SORT_CONFIG[sort];
   query = query.order(column, { ascending, nullsFirst: false });
@@ -104,6 +133,46 @@ export async function listClients({
     total: count ?? 0,
     pageSize: PAGE_SIZE,
   };
+}
+
+export type ExpiringClient = {
+  client_id: string;
+  client_name: string;
+  end_date: string;
+  plan_name: string | null;
+};
+
+// Dedicated, unpaged fetch backing ONLY the "Copiar lista" button -- the
+// table itself is paginated at PAGE_SIZE, so reusing its rows for the copy
+// text would silently truncate whenever more than a page of clients expire
+// in the selected range. Same view, same filters (via applyClientFilters) as
+// listClients, no range()/limit, so the copied text always matches what's
+// visible in the filtered table.
+export async function listExpiringClients(
+  expiresFrom: string,
+  expiresTo: string,
+  filters: ClientFilterParams = {}
+): Promise<ExpiringClient[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("client_subscription_overview")
+    .select("id, first_name, last_name, end_date, plan_name")
+    .eq("subscription_status", "active")
+    .gte("end_date", expiresFrom)
+    .lte("end_date", expiresTo);
+
+  query = applyClientFilters(query, filters);
+
+  const { data, error } = await query.order("end_date", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((r) => ({
+    client_id: r.id,
+    client_name: `${r.first_name} ${r.last_name}`,
+    end_date: r.end_date as string,
+    plan_name: r.plan_name,
+  }));
 }
 
 export async function getClient(id: string) {

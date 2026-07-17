@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   listClients,
+  listExpiringClients,
   ClientList,
   ClientFilters,
-  ClientIndicators,
+  CopyExpiringButton,
+  formatExpiringClientsSummary,
   Pager,
   type SortOption,
 } from "@/modules/clients";
 import { listActivePlansWithPrice, type SubscriptionStatus } from "@/modules/subscriptions";
-import { getDashboardStats } from "@/modules/dashboard";
-import { bogotaToday } from "@/lib/date/bogota";
 
 const VALID_SUBSCRIPTION_STATUSES = [
   "active",
@@ -32,6 +32,8 @@ export default async function ClientsPage({
     subscriptionStatus?: string;
     planId?: string;
     hasBalance?: string;
+    expiresFrom?: string;
+    expiresTo?: string;
     sort?: string;
     page?: string;
   }>;
@@ -49,25 +51,37 @@ export default async function ClientsPage({
     : "all";
   const planId = params.planId ?? "";
   const hasBalance = params.hasBalance === "yes";
+  const expiresFrom = params.expiresFrom ?? "";
+  const expiresTo = params.expiresTo ?? "";
+  const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
   const sort = VALID_SORTS.includes(params.sort as SortOption)
     ? (params.sort as SortOption)
     : "days_remaining_asc";
   const page = Math.max(1, Number(params.page) || 1);
 
-  const today = bogotaToday();
-  const [{ clients, total, pageSize }, plans, stats] = await Promise.all([
-    listClients({
-      q,
-      status,
-      subscriptionStatus,
-      planId: planId || undefined,
-      hasBalance,
-      sort,
-      page,
-    }),
-    listActivePlansWithPrice(),
-    getDashboardStats(`${today.slice(0, 7)}-01`, today),
-  ]);
+  const [{ clients, total, pageSize }, plans, expiringClients] =
+    await Promise.all([
+      listClients({
+        q,
+        status,
+        subscriptionStatus,
+        planId: planId || undefined,
+        hasBalance,
+        expiresFrom: isExpiringFilterActive ? expiresFrom : undefined,
+        expiresTo: isExpiringFilterActive ? expiresTo : undefined,
+        sort,
+        page,
+      }),
+      listActivePlansWithPrice(),
+      isExpiringFilterActive
+        ? listExpiringClients(expiresFrom, expiresTo, {
+            q,
+            status,
+            planId: planId || undefined,
+            hasBalance,
+          })
+        : Promise.resolve([]),
+    ]);
 
   function buildHref(targetPage: number) {
     const p = new URLSearchParams();
@@ -77,6 +91,10 @@ export default async function ClientsPage({
       p.set("subscriptionStatus", subscriptionStatus);
     if (planId) p.set("planId", planId);
     if (hasBalance) p.set("hasBalance", "yes");
+    if (isExpiringFilterActive) {
+      p.set("expiresFrom", expiresFrom);
+      p.set("expiresTo", expiresTo);
+    }
     if (sort !== "days_remaining_asc") p.set("sort", sort);
     if (targetPage > 1) p.set("page", String(targetPage));
     const qs = p.toString();
@@ -88,7 +106,8 @@ export default async function ClientsPage({
     status !== "all" ||
     subscriptionStatus !== "all" ||
     Boolean(planId) ||
-    hasBalance;
+    hasBalance ||
+    isExpiringFilterActive;
 
   return (
     <div>
@@ -102,10 +121,6 @@ export default async function ClientsPage({
         }
       />
 
-      <div className="mb-6">
-        <ClientIndicators stats={stats} />
-      </div>
-
       <div className="mb-4">
         <ClientFilters
           defaultQuery={q}
@@ -113,10 +128,25 @@ export default async function ClientsPage({
           subscriptionStatus={subscriptionStatus}
           planId={planId}
           hasBalance={hasBalance}
+          expiresFrom={expiresFrom}
+          expiresTo={expiresTo}
           sort={sort}
           plans={plans}
         />
       </div>
+
+      {isExpiringFilterActive && (
+        <div className="mb-4">
+          <CopyExpiringButton
+            text={formatExpiringClientsSummary(
+              expiresFrom,
+              expiresTo,
+              expiringClients
+            )}
+            count={expiringClients.length}
+          />
+        </div>
+      )}
 
       <ClientList clients={clients} hasFilters={hasFilters} />
 

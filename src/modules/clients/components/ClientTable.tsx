@@ -75,15 +75,25 @@ export function ClientTable({
                   <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
-              <TableCell
-                className={`tabular-nums ${
-                  client.days_remaining != null && client.days_remaining >= 0
-                    ? daysRemainingClass(client.days_remaining)
-                    : ""
-                }`}
-              >
-                {client.days_remaining != null && client.days_remaining >= 0 ? (
-                  client.days_remaining
+              <TableCell>
+                {client.days_remaining != null &&
+                client.days_remaining >= 0 &&
+                client.end_date ? (
+                  <div className="flex flex-col gap-0.5 py-0.5">
+                    <span
+                      className={`tabular-nums font-medium ${daysRemainingClass(
+                        client.days_remaining
+                      )}`}
+                    >
+                      {client.days_remaining} días
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      vence{" "}
+                      {new Date(
+                        `${client.end_date}T00:00:00`
+                      ).toLocaleDateString("es-CO")}
+                    </span>
+                  </div>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}

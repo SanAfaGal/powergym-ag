@@ -22,7 +22,7 @@ function KpiTile({
 
 export function DashboardKpiRow({ stats }: { stats: DashboardStats }) {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
       <KpiTile
         label="Clientes activos"
         value={stats.client_stats.total_active_clients.toLocaleString(
@@ -46,6 +46,10 @@ export function DashboardKpiRow({ stats }: { stats: DashboardStats }) {
         value={`$${stats.financial_stats.pending_debt.toLocaleString(
           "es-CO"
         )}`}
+      />
+      <KpiTile
+        label="Vencen en 7 días"
+        value={stats.alerts.expiring_within_7_days.toLocaleString("es-CO")}
       />
     </div>
   );

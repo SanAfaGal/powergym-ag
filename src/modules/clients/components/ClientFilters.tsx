@@ -2,10 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { SearchIcon, SlidersHorizontalIcon, WalletIcon, XIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  SearchIcon,
+  SlidersHorizontalIcon,
+  WalletIcon,
+  XIcon,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -42,7 +53,14 @@ const SUBSCRIPTION_STATUS_OPTIONS = [
   { value: "none", label: "Sin suscripción" },
 ] as const;
 
-const FILTER_KEYS = ["status", "subscriptionStatus", "planId", "hasBalance"] as const;
+const FILTER_KEYS = [
+  "status",
+  "subscriptionStatus",
+  "planId",
+  "hasBalance",
+  "expiresFrom",
+  "expiresTo",
+] as const;
 
 const SUBSCRIPTION_STATUS_ITEMS = Object.fromEntries(
   SUBSCRIPTION_STATUS_OPTIONS.map((opt) => [opt.value, opt.label])
@@ -54,6 +72,8 @@ export function ClientFilters({
   subscriptionStatus,
   planId,
   hasBalance,
+  expiresFrom,
+  expiresTo,
   sort,
   plans,
 }: {
@@ -62,6 +82,8 @@ export function ClientFilters({
   subscriptionStatus: string;
   planId: string;
   hasBalance: boolean;
+  expiresFrom: string;
+  expiresTo: string;
   sort: string;
   plans: { id: string; name: string }[];
 }) {
@@ -98,6 +120,14 @@ export function ClientFilters({
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  function setDateParam(key: "expiresFrom" | "expiresTo", value: string) {
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set(key, value);
+    else params.delete(key);
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
   function clearFilters() {
     const params = new URLSearchParams(searchParams);
     for (const key of FILTER_KEYS) params.delete(key);
@@ -110,13 +140,22 @@ export function ClientFilters({
     ...Object.fromEntries(plans.map((plan) => [plan.id, plan.name])),
   };
 
+  const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
+
   const activeCount = [
     status !== "all",
     subscriptionStatus !== "all",
     Boolean(planId),
     hasBalance,
+    isExpiringFilterActive,
   ].filter(Boolean).length;
 
+  // Fixed, generous widths per control -- not flex-1/w-full stretched into
+  // an N-column grid. Forcing 5 equal columns squeezed everything (the
+  // Suscripción select's own text got clipped, the Cliente pills wrapped
+  // mid-group) at exactly the desktop widths this panel actually renders
+  // at. flex-wrap lets each control keep the room it needs and wrap to a
+  // second line as a whole group, rather than every group shrinking together.
   function filterGroups() {
     return (
       <>
@@ -131,7 +170,7 @@ export function ClientFilters({
             onChange={(v) => setParam("status", v, "all")}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex w-56 flex-col gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">
             Suscripción
           </span>
@@ -139,8 +178,9 @@ export function ClientFilters({
             items={SUBSCRIPTION_STATUS_ITEMS}
             value={subscriptionStatus}
             onValueChange={(v) => setParam("subscriptionStatus", v ?? "all", "all")}
+            disabled={isExpiringFilterActive}
           >
-            <SelectTrigger aria-label="Estado de suscripción" className="w-full sm:w-56">
+            <SelectTrigger aria-label="Estado de suscripción" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -151,8 +191,35 @@ export function ClientFilters({
               ))}
             </SelectContent>
           </Select>
+          {isExpiringFilterActive && (
+            <span className="text-xs text-muted-foreground">
+              Se ignora mientras el filtro de vencimientos esté activo
+            </span>
+          )}
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex w-80 flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            Vence entre
+          </span>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              aria-label="Vence desde"
+              value={expiresFrom}
+              onChange={(e) => setDateParam("expiresFrom", e.target.value)}
+              className="w-full"
+            />
+            <span className="shrink-0 text-xs text-muted-foreground">–</span>
+            <Input
+              type="date"
+              aria-label="Vence hasta"
+              value={expiresTo}
+              onChange={(e) => setDateParam("expiresTo", e.target.value)}
+              className="w-full"
+            />
+          </div>
+        </div>
+        <div className="flex w-48 flex-col gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">
             Plan
           </span>
@@ -161,7 +228,7 @@ export function ClientFilters({
             value={planId || "all"}
             onValueChange={(v) => setParam("planId", v ?? "all", "all")}
           >
-            <SelectTrigger aria-label="Plan" className="w-full sm:w-48">
+            <SelectTrigger aria-label="Plan" className="w-full">
               <SelectValue placeholder="Todos los planes" />
             </SelectTrigger>
             <SelectContent>
@@ -174,7 +241,7 @@ export function ClientFilters({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex w-52 flex-col gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">
             Saldo
           </span>
@@ -183,14 +250,14 @@ export function ClientFilters({
             aria-pressed={hasBalance}
             onClick={() => setParam("hasBalance", hasBalance ? "all" : "yes", "all")}
             className={cn(
-              "inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1 text-sm font-medium transition-colors",
+              "inline-flex h-8 w-full cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium transition-colors",
               hasBalance
                 ? "border-transparent bg-primary/15 text-primary"
                 : "border-input bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            <WalletIcon className="size-3.5" />
-            Con saldo pendiente
+            <WalletIcon className="size-3.5 shrink-0" />
+            <span className="truncate">Con saldo pendiente</span>
           </button>
         </div>
       </>
@@ -226,31 +293,39 @@ export function ClientFilters({
       {/* Desktop / tablet */}
       <Card size="sm" className="hidden md:block">
         <CardContent className="flex flex-col gap-3">
-          {searchInput()}
-          <div className="flex flex-wrap items-end gap-4">
-            {filterGroups()}
-            <div className="ml-auto flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
-                Ordenar
-              </span>
-              <ClientSortControl sort={sort} className="w-full sm:w-44" />
-            </div>
-          </div>
-          {activeCount > 0 && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>
-                {activeCount} filtro{activeCount === 1 ? "" : "s"} activo
-                {activeCount === 1 ? "" : "s"}
-              </span>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="cursor-pointer font-medium text-primary hover:underline"
+          <Collapsible defaultOpen={activeCount > 0}>
+            {/* Toolbar: search grows to absorb all the slack, filter
+                controls stay a tight cluster, sort anchors to the far
+                right -- three clear zones instead of edge-justified
+                elements with a dead gap between them. Every control here
+                is h-8 (Input's default, and Button's "default" size, not
+                "sm") so the row shares one baseline. */}
+            <div className="flex items-center gap-3">
+              <div className="relative min-w-0 flex-1">{searchInput()}</div>
+              <CollapsibleTrigger
+                render={<Button variant="outline" className="group shrink-0 gap-1.5" />}
               >
-                Limpiar
-              </button>
+                <SlidersHorizontalIcon className="size-3.5" />
+                Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+                <ChevronDownIcon className="size-3.5 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180" />
+              </CollapsibleTrigger>
+              {activeCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="shrink-0 cursor-pointer text-xs font-medium text-primary hover:underline"
+                >
+                  Limpiar
+                </button>
+              )}
+              <ClientSortControl sort={sort} className="ml-auto shrink-0" />
             </div>
-          )}
+            <CollapsibleContent className="pt-4">
+              <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
+                {filterGroups()}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Quicksand } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -41,6 +42,7 @@ export default function RootLayout({
           enableSystem={false}
         >
           {children}
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
