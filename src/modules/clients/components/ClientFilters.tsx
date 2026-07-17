@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Collapsible,
@@ -35,7 +36,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SegmentedFilter } from "@/components/shared/SegmentedFilter";
-import { cn } from "@/lib/utils";
 import { ClientSortControl } from "./ClientSortControl";
 
 const STATUS_OPTIONS = [
@@ -88,11 +88,31 @@ export function ClientFilters({
   sort: string;
   plans: { id: string; name: string }[];
 }) {
+  const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
+  const activeCount = [
+    status !== "all",
+    subscriptionStatus !== "all",
+    Boolean(planId),
+    hasBalance,
+    isExpiringFilterActive,
+  ].filter(Boolean).length;
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(defaultQuery);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Separate from filtersOpen (the mobile Sheet's state): Sheet renders its
+  // content through a portal, so sharing one state would pop the mobile
+  // sheet open (unhidden by its md:hidden wrapper) whenever the desktop
+  // panel opens. Initialized once from activeCount at mount (open the panel
+  // if filters already came in active from the URL) -- must stay controlled
+  // from here on, since re-deriving defaultOpen from activeCount on every
+  // render trips Base UI's uncontrolled-Collapsible warning the moment a
+  // filter changes.
+  const [desktopFiltersOpen, setDesktopFiltersOpen] = useState(
+    () => activeCount > 0
+  );
   const isFirstRender = useRef(true);
   // Refines the same filtered view rather than navigating to a new one --
   // replace() so tweaking 5 filters doesn't leave 5 back-button stops, and
@@ -154,16 +174,6 @@ export function ClientFilters({
     ...Object.fromEntries(plans.map((plan) => [plan.id, plan.name])),
   };
 
-  const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
-
-  const activeCount = [
-    status !== "all",
-    subscriptionStatus !== "all",
-    Boolean(planId),
-    hasBalance,
-    isExpiringFilterActive,
-  ].filter(Boolean).length;
-
   // Fixed, generous widths per control -- not flex-1/w-full stretched into
   // an N-column grid. Forcing 5 equal columns squeezed everything (the
   // Suscripción select's own text got clipped, the Cliente pills wrapped
@@ -216,19 +226,17 @@ export function ClientFilters({
             Vence entre
           </span>
           <div className="flex items-center gap-2">
-            <Input
-              type="date"
+            <DatePicker
               aria-label="Vence desde"
               value={expiresFrom}
-              onChange={(e) => setDateParam("expiresFrom", e.target.value)}
+              onChange={(value) => setDateParam("expiresFrom", value)}
               className="w-full"
             />
             <span className="shrink-0 text-xs text-muted-foreground">–</span>
-            <Input
-              type="date"
+            <DatePicker
               aria-label="Vence hasta"
               value={expiresTo}
-              onChange={(e) => setDateParam("expiresTo", e.target.value)}
+              onChange={(value) => setDateParam("expiresTo", value)}
               className="w-full"
             />
           </div>
@@ -255,26 +263,28 @@ export function ClientFilters({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-52 flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            Saldo
-          </span>
-          <button
-            type="button"
-            aria-pressed={hasBalance}
-            onClick={() => setParam("hasBalance", hasBalance ? "all" : "yes", "all")}
-            className={cn(
-              "inline-flex h-8 w-full cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium transition-colors",
-              hasBalance
-                ? "border-transparent bg-primary/15 text-primary"
-                : "border-input bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <WalletIcon className="size-3.5 shrink-0" />
-            <span className="truncate">Con saldo pendiente</span>
-          </button>
-        </div>
       </>
+    );
+  }
+
+  // Lives in the toolbar next to ClientSortControl rather than inside
+  // filterGroups() -- it's a single always-visible toggle, not worth
+  // burying behind the "Filtros" panel like the multi-option filters.
+  function balanceToggle(showLabel = false) {
+    return (
+      <Button
+        type="button"
+        variant={hasBalance ? "default" : "outline"}
+        size={showLabel ? "default" : "icon"}
+        aria-pressed={hasBalance}
+        aria-label="Con saldo pendiente"
+        title={showLabel ? undefined : "Con saldo pendiente"}
+        onClick={() => setParam("hasBalance", hasBalance ? "all" : "yes", "all")}
+        className="shrink-0 gap-1.5"
+      >
+        <WalletIcon className="size-3.5" />
+        {showLabel && "Saldo"}
+      </Button>
     );
   }
 
@@ -311,7 +321,7 @@ export function ClientFilters({
       {/* Desktop / tablet */}
       <Card size="sm" className="hidden md:block">
         <CardContent className="flex flex-col gap-3">
-          <Collapsible defaultOpen={activeCount > 0}>
+          <Collapsible open={desktopFiltersOpen} onOpenChange={setDesktopFiltersOpen}>
             {/* Toolbar: search grows to absorb all the slack, filter
                 controls stay a tight cluster, sort anchors to the far
                 right -- three clear zones instead of edge-justified
@@ -336,7 +346,10 @@ export function ClientFilters({
                   Limpiar
                 </button>
               )}
-              <ClientSortControl sort={sort} className="ml-auto shrink-0" />
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                {balanceToggle()}
+                <ClientSortControl sort={sort} />
+              </div>
             </div>
             <CollapsibleContent className="pt-4">
               <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
@@ -350,7 +363,7 @@ export function ClientFilters({
       {/* Mobile */}
       <div className="flex flex-col gap-2 md:hidden">
         {searchInput()}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
             <SheetTrigger
               render={<Button variant="outline" size="sm" className="gap-1.5" />}
@@ -378,7 +391,8 @@ export function ClientFilters({
               </SheetFooter>
             </SheetContent>
           </Sheet>
-          <ClientSortControl sort={sort} className="flex-1" />
+          {balanceToggle(true)}
+          <ClientSortControl sort={sort} showLabel />
         </div>
       </div>
     </>

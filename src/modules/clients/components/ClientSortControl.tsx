@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 // first) is the default and most actionable order.
 export function ClientSortControl({
   sort,
+  showLabel = false,
   className,
 }: {
   sort: string;
+  showLabel?: boolean;
   className?: string;
 }) {
   const router = useRouter();
@@ -37,14 +39,16 @@ export function ClientSortControl({
     <Button
       type="button"
       variant="outline"
+      size={showLabel ? "default" : "icon"}
       onClick={toggle}
       className={className}
+      title={showLabel ? undefined : "Días restantes"}
       aria-label={`Ordenar por días restantes, ${
         ascending ? "ascendente" : "descendente"
       }`}
     >
       {isPending ? <Loader2Icon className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />}
-      Días restantes
+      {showLabel && "Días restantes"}
     </Button>
   );
 }
