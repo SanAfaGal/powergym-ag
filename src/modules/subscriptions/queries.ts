@@ -85,7 +85,9 @@ export async function listClientSubscriptions(
   });
 }
 
-export async function listActivePlansWithPrice(): Promise<PlanOption[]> {
+// React's cache() rather than next/cache's unstable_cache() -- see the note
+// on listDocumentTypes in src/modules/clients/queries.ts for why.
+export const listActivePlansWithPrice = cache(async (): Promise<PlanOption[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("plans_with_current_price", {
     p_active_only: true,
@@ -100,7 +102,7 @@ export async function listActivePlansWithPrice(): Promise<PlanOption[]> {
     name: row.name,
     price: row.current_price,
   }));
-}
+});
 
 // React's cache() rather than next/cache's unstable_cache() -- see the note
 // on listDocumentTypes in src/modules/clients/queries.ts for why.

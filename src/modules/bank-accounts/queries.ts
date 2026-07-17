@@ -14,7 +14,9 @@ export type BankAccount = {
   created_at: string;
 };
 
-export async function listBankAccounts() {
+// React's cache() rather than next/cache's unstable_cache() -- see the note
+// on listDocumentTypes in src/modules/clients/queries.ts for why.
+export const listBankAccounts = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bank_accounts")
@@ -23,9 +25,9 @@ export async function listBankAccounts() {
 
   if (error) throw error;
   return (data ?? []) as BankAccount[];
-}
+});
 
-export async function listActiveBankAccounts() {
+export const listActiveBankAccounts = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bank_accounts")
@@ -35,7 +37,7 @@ export async function listActiveBankAccounts() {
 
   if (error) throw error;
   return (data ?? []) as BankAccount[];
-}
+});
 
 // React's cache() rather than next/cache's unstable_cache() -- see the note
 // on listDocumentTypes in src/modules/clients/queries.ts for why.
