@@ -66,67 +66,74 @@
 }
 
 /*
- * PowerGym AG brand tokens -- "Soft Pastel" theme, matched to the
- * "Gym Panel (Soft Pastel)" reference design (dusty rose primary + muted
- * teal secondary accent, soft neutrals, Quicksand/Manrope type).
+ * PowerGym AG brand tokens -- "Bold Red" theme, built from the brand marks
+ * (#F20505 red, #0D0D0D near-black, #1F438C blue, the last used sparingly).
+ * Soft neutrals and Quicksand/Manrope type carry over from the previous
+ * "Soft Pastel" theme; only the brand hues change.
  *
  * Two brand roles, each a single oklch value (tints/shades are derived at
  * use-site with Tailwind opacity or color-mix(), matching this codebase's
  * existing convention -- see Button's `hover:bg-primary/80` and
  * `color-mix(in_oklch, var(--secondary), var(--foreground) 5%)`):
- *   --primary   dusty rose  #d98a92 -- the one brand accent for primary actions
- *   --accent-2  muted teal  #6fa8a3 -- a second accent for a distinct semantic
- *               role (e.g. an "active" tag) so it never collides with primary
+ *   --primary   brand red   #F20505 -- softened in lightness/chroma from the
+ *               raw mark so it reads as bold rather than glaring across
+ *               large button fills; the raw hex stays reserved for small
+ *               high-impact details (badges, icons) at call sites
+ *   --accent-2  brand blue  #1F438C -- the sparse second accent, for a
+ *               distinct semantic role (e.g. an "active" tag) so it never
+ *               collides with primary
  *
  * Deliberate principle carried over from the old palette: brand color is
  * reserved for primary actions/accents ONLY. Status colors keep their own
  * hues (destructive/warning/success/info) so "delete" is never visually
  * confusable with the primary action, and none of them borrow primary's or
- * accent-2's hue.
+ * accent-2's hue -- destructive and info were both re-hued off their old
+ * values because they'd otherwise sit too close to the new, much more
+ * saturated primary red and accent-2 blue.
  */
 :root {
   --background: oklch(0.968 0.004 286.325); /* #f4f4f7 */
-  --foreground: oklch(0.324 0.012 285.693); /* #33333a */
+  --foreground: oklch(0.16 0 0); /* near-black #0d0d0d */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.324 0.012 285.693);
+  --card-foreground: oklch(0.16 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.324 0.012 285.693);
-  --primary: oklch(0.717 0.097 13.205); /* dusty rose #d98a92 */
+  --popover-foreground: oklch(0.16 0 0);
+  --primary: oklch(0.55 0.19 29); /* brand red, softened from #f20505 */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.956 0.004 286.324); /* neutral-200 #f0f0f3 */
-  --secondary-foreground: oklch(0.324 0.012 285.693);
+  --secondary-foreground: oklch(0.16 0 0);
   --muted: oklch(0.956 0.004 286.324);
   --muted-foreground: oklch(0.623 0.013 286.005); /* neutral-600 #86868f */
   --accent: oklch(0.956 0.004 286.324);
-  --accent-foreground: oklch(0.324 0.012 285.693);
-  --accent-2: oklch(0.691 0.06 188.902); /* muted teal #6fa8a3 */
+  --accent-foreground: oklch(0.16 0 0);
+  --accent-2: oklch(0.42 0.13 258); /* brand blue #1f438c */
   --accent-2-foreground: oklch(1 0 0);
-  --destructive: oklch(0.599 0.148 26.006); /* soft terracotta #c9564f */
+  --destructive: oklch(0.58 0.16 46); /* burnt red-orange, kept off primary's hue */
   --warning: oklch(0.682 0.122 69.365); /* soft amber #c98a3a */
-  --warning-foreground: oklch(0.324 0.012 285.693);
+  --warning-foreground: oklch(0.16 0 0);
   --success: oklch(0.643 0.097 150.543); /* soft sage #5f9e6e */
   --success-foreground: oklch(1 0 0);
-  --info: oklch(0.647 0.096 259.676); /* soft slate blue #6b8fc9 */
+  --info: oklch(0.62 0.1 232); /* violet-blue, kept off accent-2's hue */
   --info-foreground: oklch(1 0 0);
-  --border: oklch(0.324 0.012 285.693 / 10%); /* divider = text @ 10% */
-  --input: oklch(0.324 0.012 285.693 / 10%);
-  --ring: oklch(0.717 0.097 13.205);
-  --chart-1: oklch(0.717 0.097 13.205);
-  --chart-2: oklch(0.691 0.06 188.902);
+  --border: oklch(0.16 0 0 / 10%); /* divider = text @ 10% */
+  --input: oklch(0.16 0 0 / 10%);
+  --ring: oklch(0.55 0.19 29);
+  --chart-1: oklch(0.55 0.19 29);
+  --chart-2: oklch(0.42 0.13 258);
   --chart-3: oklch(0.682 0.122 69.365);
   --chart-4: oklch(0.623 0.013 286.005);
-  --chart-5: oklch(0.324 0.012 285.693);
+  --chart-5: oklch(0.16 0 0);
   --radius: var(--radius-md);
   /* the shell (Sidebar) is a light floating surface in this theme, not a
      dark ink panel -- see AppSidebar.tsx for the floating-card treatment */
   --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.324 0.012 285.693);
-  --sidebar-primary: oklch(0.717 0.097 13.205);
+  --sidebar-foreground: oklch(0.16 0 0);
+  --sidebar-primary: oklch(0.55 0.19 29);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.96 0.014 6.706); /* primary-100 tint #fbeef0 */
-  --sidebar-accent-foreground: oklch(0.434 0.089 12.713); /* primary-800 #7a3a43 */
-  --sidebar-border: oklch(0.324 0.012 285.693 / 10%);
-  --sidebar-ring: oklch(0.717 0.097 13.205);
+  --sidebar-accent: oklch(0.96 0.03 29); /* primary-100 tint, pale red */
+  --sidebar-accent-foreground: oklch(0.4 0.15 29); /* primary-800, deep red */
+  --sidebar-border: oklch(0.16 0 0 / 10%);
+  --sidebar-ring: oklch(0.55 0.19 29);
 }
 
 .dark {
@@ -136,39 +143,39 @@
   --card-foreground: oklch(0.956 0.004 286.324);
   --popover: oklch(0.28 0.013 285.9);
   --popover-foreground: oklch(0.956 0.004 286.324);
-  --primary: oklch(0.717 0.097 13.205);
-  --primary-foreground: oklch(0.225 0.012 285.693);
+  --primary: oklch(0.55 0.19 29);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.34 0.013 285.9);
   --secondary-foreground: oklch(0.956 0.004 286.324);
   --muted: oklch(0.34 0.013 285.9);
   --muted-foreground: oklch(0.72 0.012 286);
   --accent: oklch(0.34 0.013 285.9);
   --accent-foreground: oklch(0.956 0.004 286.324);
-  --accent-2: oklch(0.691 0.06 188.902);
-  --accent-2-foreground: oklch(0.225 0.012 285.693);
-  --destructive: oklch(0.66 0.148 26.006);
+  --accent-2: oklch(0.42 0.13 258);
+  --accent-2-foreground: oklch(1 0 0);
+  --destructive: oklch(0.64 0.16 46);
   --warning: oklch(0.74 0.122 69.365);
   --warning-foreground: oklch(0.225 0.012 285.693);
   --success: oklch(0.7 0.097 150.543);
   --success-foreground: oklch(0.225 0.012 285.693);
-  --info: oklch(0.7 0.096 259.676);
+  --info: oklch(0.7 0.1 232);
   --info-foreground: oklch(0.225 0.012 285.693);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.717 0.097 13.205);
-  --chart-1: oklch(0.717 0.097 13.205);
-  --chart-2: oklch(0.691 0.06 188.902);
+  --ring: oklch(0.55 0.19 29);
+  --chart-1: oklch(0.55 0.19 29);
+  --chart-2: oklch(0.42 0.13 258);
   --chart-3: oklch(0.74 0.122 69.365);
   --chart-4: oklch(0.72 0.012 286);
   --chart-5: oklch(0.87 0.007 286.266);
   --sidebar: oklch(0.28 0.013 285.9);
   --sidebar-foreground: oklch(0.956 0.004 286.324);
-  --sidebar-primary: oklch(0.717 0.097 13.205);
-  --sidebar-primary-foreground: oklch(0.225 0.012 285.693);
+  --sidebar-primary: oklch(0.55 0.19 29);
+  --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.34 0.013 285.9);
   --sidebar-accent-foreground: oklch(0.956 0.004 286.324);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.717 0.097 13.205);
+  --sidebar-ring: oklch(0.55 0.19 29);
 }
 
 @layer base {
