@@ -13,6 +13,7 @@ import type { ClientWithSubscription } from "../queries";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
+import { GenderIcon } from "../lib/genderIcon";
 
 export function ClientTable({
   clients,
@@ -40,17 +41,22 @@ export function ClientTable({
           {clients.map((client) => (
             <TableRow key={client.id}>
               <TableCell className="font-medium">
-                <Link
-                  href={`/clients/${client.id}`}
-                  className="hover:underline"
-                >
-                  {client.first_name} {client.last_name}
-                </Link>
-                {client.alias && (
-                  <span className="ml-1.5 font-normal text-muted-foreground">
-                    ({client.alias})
+                <div className="flex items-center gap-1.5">
+                  <GenderIcon gender={client.gender} />
+                  <span>
+                    <Link
+                      href={`/clients/${client.id}`}
+                      className="hover:underline"
+                    >
+                      {client.first_name} {client.last_name}
+                    </Link>
+                    {client.alias && (
+                      <span className="ml-1.5 font-normal text-muted-foreground">
+                        ({client.alias})
+                      </span>
+                    )}
                   </span>
-                )}
+                </div>
               </TableCell>
               <TableCell className="tabular-nums">
                 {client.dni_number ? (

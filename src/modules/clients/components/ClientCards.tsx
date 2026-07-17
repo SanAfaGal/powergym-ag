@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { ContactLinks } from "./ContactLinks";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
+import { GenderIcon } from "../lib/genderIcon";
 
 export function ClientCards({
   clients,
@@ -19,17 +20,20 @@ export function ClientCards({
         // (and breaks click targeting) -- only the name links out.
         <Card key={client.id} className="gap-2 bg-secondary/40 px-4 py-4">
           <div className="flex items-center justify-between gap-2">
-            <Link
-              href={`/clients/${client.id}`}
-              className="font-medium hover:underline"
-            >
-              {client.first_name} {client.last_name}
-              {client.alias && (
-                <span className="ml-1.5 font-normal text-muted-foreground">
-                  ({client.alias})
-                </span>
-              )}
-            </Link>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <GenderIcon gender={client.gender} />
+              <Link
+                href={`/clients/${client.id}`}
+                className="font-medium hover:underline"
+              >
+                {client.first_name} {client.last_name}
+                {client.alias && (
+                  <span className="ml-1.5 font-normal text-muted-foreground">
+                    ({client.alias})
+                  </span>
+                )}
+              </Link>
+            </div>
             <StatusBadge isActive={client.is_active} />
           </div>
           <div className="flex flex-col gap-1 text-sm text-muted-foreground">
