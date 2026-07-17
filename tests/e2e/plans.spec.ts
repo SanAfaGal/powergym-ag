@@ -50,5 +50,9 @@ test("admin can create a plan end-to-end", async ({ page }) => {
 
   await page.waitForURL(/\/plans\/[0-9a-f-]+$/, { timeout: 15000 });
   await expect(page.getByRole("heading", { name: planName })).toBeVisible();
-  await expect(page.getByText("$55.000 COP")).toBeVisible();
+  // PriceHistory renders a desktop table and a mobile card list
+  // unconditionally (CSS hides whichever doesn't match the breakpoint), so
+  // this text matches twice -- .first() is the desktop table cell, the one
+  // actually visible at this project's Desktop Chrome viewport.
+  await expect(page.getByText("$55.000 COP").first()).toBeVisible();
 });

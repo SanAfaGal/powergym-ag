@@ -21,9 +21,13 @@ test("admin can enroll a client, record a full payment, and see it become active
   await login(page, ADMIN);
 
   await page.goto("/clients");
-  const searchInput = page.getByPlaceholder(
-    "Buscar por nombre, alias, documento o email..."
-  );
+  // ClientFilters renders a desktop and a mobile toolbar unconditionally
+  // (CSS hides whichever doesn't match the breakpoint), so this placeholder
+  // matches two real <input> elements -- .first() is the desktop one, the
+  // one actually visible at this project's Desktop Chrome viewport.
+  const searchInput = page
+    .getByPlaceholder("Buscar por nombre, alias, documento o email...")
+    .first();
   await searchInput.waitFor();
   // The seeded client list has grown past one page (Task 9), and the
   // default sort is by subscription start date, so "Maria Gomez" isn't

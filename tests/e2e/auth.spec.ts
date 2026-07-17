@@ -14,7 +14,9 @@ test("valid login redirects to the dashboard", async ({ page }) => {
   await page.getByRole("button", { name: "Ingresar" }).click();
 
   await expect(page).toHaveURL("/dashboard");
-  await expect(page.getByText(/Bienvenido, Admin Seed/)).toBeVisible();
+  // AppSidebar's footer shows the authenticated user's name/role -- proof
+  // the session actually carries the right identity, not just a redirect.
+  await expect(page.getByText("Admin Seed")).toBeVisible();
 });
 
 test("invalid credentials show an inline error and stay on /login", async ({
