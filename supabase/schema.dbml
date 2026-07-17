@@ -50,6 +50,7 @@ Table clients {
   indexes {
     (first_name, last_name) [name: 'clients_name_trgm_idx', type: gin]
     dni_number [name: 'clients_dni_trgm_idx', type: gin]
+    created_at [name: 'clients_created_at_idx']
   }
 
   Note: 'No DELETE — soft delete via is_active. Only first_name/last_name required; everything else, including the document, is optional (a client can be registered with just a name and completed later).'

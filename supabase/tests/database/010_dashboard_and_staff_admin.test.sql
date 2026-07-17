@@ -55,8 +55,17 @@
 --   E. employee2 tries to demote themselves via set_staff_role -- refused.
 -- D and E together confirm the guard applies to self-lockout via EITHER
 -- RPC, not just one of the two code paths the UI exposes.
+--
+-- plan(21) -> plan(23): +2 for a timezone-boundary regression check on
+-- get_dashboard_stats' revenue_in_range (migration 0037 fixed the same
+-- class of bug already fixed for get_daily_activity in 0036: filtering a
+-- timestamptz payment_date by casting to ::date resolves against the
+-- session's timezone, not Bogota). A payment at 23:30 Bogota on Jan 1 is
+-- 04:30 UTC on Jan 2 -- with the old ::date cast it would be attributed to
+-- Jan 2, not Jan 1. Assert it lands in the Jan 1 range and not the Jan 2
+-- range.
 begin;
-select plan(21);
+select plan(23);
 
 select tests.create_supabase_user('admin2@example.test', 'admin2@example.test');
 select tests.create_supabase_user('employee2@example.test', 'employee2@example.test');
@@ -89,6 +98,28 @@ select ok(
 select ok(
   (public.get_dashboard_stats(current_date - 30, current_date + 30) ? 'alerts'),
   'get_dashboard_stats returns alerts key'
+);
+
+-- Timezone-boundary regression: 23:30 on Jan 1 in Bogota (UTC-5) is 04:30 on
+-- Jan 2 in UTC. Stored via an explicit `at time zone` conversion so this
+-- doesn't depend on the test session's own timezone setting.
+insert into public.payments (id, subscription_id, amount, payment_method, payment_date)
+select
+  '91000000-0000-0000-0000-000000000030',
+  (select id from public.subscriptions where client_id = (select id from public.clients where dni_number = 'DASH-CLIENT-1')),
+  55000,
+  'cash',
+  '2024-01-01 23:30:00'::timestamp at time zone 'America/Bogota';
+
+select is(
+  (public.get_dashboard_stats('2024-01-01', '2024-01-01') -> 'financial_stats' ->> 'revenue_in_range')::numeric,
+  55000::numeric,
+  'a payment at 23:30 Bogota on Jan 1 counts toward Jan 1''s revenue_in_range, not Jan 2''s UTC date'
+);
+select is(
+  (public.get_dashboard_stats('2024-01-02', '2024-01-02') -> 'financial_stats' ->> 'revenue_in_range')::numeric,
+  0::numeric,
+  'that same payment is excluded from Jan 2''s revenue_in_range'
 );
 
 select lives_ok(
