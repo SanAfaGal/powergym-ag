@@ -21,18 +21,27 @@ export default async function PlanDetailPage({
 }) {
   const { id } = await params;
 
+  // Kicked off together (not sequentially awaited) -- the 4 calls are
+  // mutually independent. getPlan keeps its own try/catch for notFound()
+  // semantics; the other three keep their current (uncaught) error
+  // behavior, just running concurrently with it instead of after it.
+  const planPromise = getPlan(id);
+  const pricesPromise = getPriceHistory(id);
+  const isAdminPromise = isAdmin();
+  const currentPricePromise = currentPriceFor(id);
+
   let plan;
   try {
-    plan = await getPlan(id);
+    plan = await planPromise;
   } catch {
     notFound();
   }
 
-  const [prices, canManage] = await Promise.all([
-    getPriceHistory(id),
-    isAdmin(),
+  const [prices, canManage, currentPrice] = await Promise.all([
+    pricesPromise,
+    isAdminPromise,
+    currentPricePromise,
   ]);
-  const currentPrice = await currentPriceFor(id);
 
   return (
     <div>
