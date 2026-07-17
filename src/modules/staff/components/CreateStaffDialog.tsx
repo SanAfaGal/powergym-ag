@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -241,15 +242,13 @@ export function CreateStaffDialog() {
                 {serverError && (
                   <p className="text-sm text-destructive">{serverError}</p>
                 )}
-                <Button
-                  type="submit"
-                  disabled={form.formState.isSubmitting}
+                <SubmitButton
+                  pending={form.formState.isSubmitting}
+                  pendingLabel="Creando..."
                   className="w-full sm:w-fit"
                 >
-                  {form.formState.isSubmitting
-                    ? "Creando..."
-                    : "Crear usuario"}
-                </Button>
+                  Crear usuario
+                </SubmitButton>
               </form>
             </Form>
           </>

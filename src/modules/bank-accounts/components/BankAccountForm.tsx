@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
   SelectContent,
@@ -159,13 +159,13 @@ export function BankAccountForm({
         {serverError && (
           <p className="text-sm text-destructive">{serverError}</p>
         )}
-        <Button
-          type="submit"
-          disabled={form.formState.isSubmitting}
+        <SubmitButton
+          pending={form.formState.isSubmitting}
+          pendingLabel="Guardando..."
           className="w-full sm:w-fit"
         >
-          {form.formState.isSubmitting ? "Guardando..." : submitLabel}
-        </Button>
+          {submitLabel}
+        </SubmitButton>
       </form>
     </Form>
   );

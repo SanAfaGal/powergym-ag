@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +34,7 @@ export function CancelScheduledPriceDialog({
         setError(result.error);
         return;
       }
+      toast.success("Programación cancelada");
       setOpen(false);
     });
   }
@@ -54,9 +57,15 @@ export function CancelScheduledPriceDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Volver
           </Button>
-          <Button variant="destructive" onClick={confirm} disabled={isPending}>
-            {isPending ? "Cancelando..." : "Cancelar programación"}
-          </Button>
+          <SubmitButton
+            type="button"
+            variant="destructive"
+            onClick={confirm}
+            pending={isPending}
+            pendingLabel="Cancelando..."
+          >
+            Cancelar programación
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

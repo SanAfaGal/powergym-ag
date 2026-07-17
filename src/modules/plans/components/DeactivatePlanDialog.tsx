@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +29,15 @@ export function DeactivatePlanDialog({
 
   function confirm() {
     startTransition(async () => {
-      await setPlanActive(planId, !isActive);
+      try {
+        await setPlanActive(planId, !isActive);
+      } catch {
+        toast.error(
+          isActive ? "No se pudo desactivar el plan" : "No se pudo reactivar el plan"
+        );
+        return;
+      }
+      toast.success(isActive ? "Plan desactivado" : "Plan reactivado");
       setOpen(false);
     });
   }
@@ -54,17 +64,15 @@ export function DeactivatePlanDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button
+          <SubmitButton
+            type="button"
             variant={isActive ? "destructive" : "default"}
             onClick={confirm}
-            disabled={isPending}
+            pending={isPending}
+            pendingLabel="Guardando..."
           >
-            {isPending
-              ? "Guardando..."
-              : isActive
-                ? "Desactivar"
-                : "Reactivar"}
-          </Button>
+            {isActive ? "Desactivar" : "Reactivar"}
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

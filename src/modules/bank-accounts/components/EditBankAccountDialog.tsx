@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +29,7 @@ export function EditBankAccountDialog({
   async function handleSubmit(values: BankAccountInput) {
     const result = await updateBankAccount(account.id, values);
     if ("error" in result) return { error: result.error };
+    toast.success("Cuenta actualizada");
     setOpen(false);
   }
 

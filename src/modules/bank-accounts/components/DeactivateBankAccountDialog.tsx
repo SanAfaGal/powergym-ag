@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +29,15 @@ export function DeactivateBankAccountDialog({
 
   function confirm() {
     startTransition(async () => {
-      await setBankAccountActive(accountId, !isActive);
+      try {
+        await setBankAccountActive(accountId, !isActive);
+      } catch {
+        toast.error(
+          isActive ? "No se pudo desactivar la cuenta" : "No se pudo reactivar la cuenta"
+        );
+        return;
+      }
+      toast.success(isActive ? "Cuenta desactivada" : "Cuenta reactivada");
       setOpen(false);
     });
   }
@@ -56,17 +66,15 @@ export function DeactivateBankAccountDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button
+          <SubmitButton
+            type="button"
             variant={isActive ? "destructive" : "default"}
             onClick={confirm}
-            disabled={isPending}
+            pending={isPending}
+            pendingLabel="Guardando..."
           >
-            {isPending
-              ? "Guardando..."
-              : isActive
-                ? "Desactivar"
-                : "Reactivar"}
-          </Button>
+            {isActive ? "Desactivar" : "Reactivar"}
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

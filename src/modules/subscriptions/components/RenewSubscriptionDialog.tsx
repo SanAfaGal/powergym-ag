@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +35,7 @@ export function RenewSubscriptionDialog({
         setError(result.error);
         return;
       }
+      toast.success("Suscripción renovada");
       setOpen(false);
     });
   }
@@ -58,9 +61,14 @@ export function RenewSubscriptionDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={confirm} disabled={isPending}>
-            {isPending ? "Renovando..." : "Renovar"}
-          </Button>
+          <SubmitButton
+            type="button"
+            onClick={confirm}
+            pending={isPending}
+            pendingLabel="Renovando..."
+          >
+            Renovar
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

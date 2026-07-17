@@ -7,6 +7,7 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -172,15 +173,13 @@ export function ResetStaffPasswordDialog({
                 {serverError && (
                   <p className="text-sm text-destructive">{serverError}</p>
                 )}
-                <Button
-                  type="submit"
-                  disabled={form.formState.isSubmitting}
+                <SubmitButton
+                  pending={form.formState.isSubmitting}
+                  pendingLabel="Guardando..."
                   className="w-full sm:w-fit"
                 >
-                  {form.formState.isSubmitting
-                    ? "Guardando..."
-                    : "Restablecer"}
-                </Button>
+                  Restablecer
+                </SubmitButton>
               </form>
             </Form>
           </>

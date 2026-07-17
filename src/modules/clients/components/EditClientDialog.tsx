@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function EditClientDialog({
           onSubmit={async (values) => {
             const result = await updateClient(client.id, values);
             if ("error" in result) return result;
+            toast.success("Cliente actualizado");
             setOpen(false);
           }}
           submitLabel="Guardar cambios"

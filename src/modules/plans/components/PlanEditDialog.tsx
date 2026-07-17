@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
   SelectContent,
@@ -58,6 +60,7 @@ export function PlanEditDialog({ plan }: { plan: Plan }) {
       setServerError(result.error);
       return;
     }
+    toast.success("Plan actualizado");
     setOpen(false);
   }
 
@@ -155,13 +158,13 @@ export function PlanEditDialog({ plan }: { plan: Plan }) {
             {serverError && (
               <p className="text-sm text-destructive">{serverError}</p>
             )}
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
+            <SubmitButton
+              pending={form.formState.isSubmitting}
+              pendingLabel="Guardando..."
               className="w-full sm:w-fit"
             >
-              {form.formState.isSubmitting ? "Guardando..." : "Guardar cambios"}
-            </Button>
+              Guardar cambios
+            </SubmitButton>
           </form>
         </Form>
       </DialogContent>

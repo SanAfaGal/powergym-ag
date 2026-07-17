@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,7 @@ export function DeactivateStaffDialog({
         setServerError(result.error);
         return;
       }
+      toast.success(isActive ? "Usuario desactivado" : "Usuario activado");
       setOpen(false);
     });
   }
@@ -79,13 +82,15 @@ export function DeactivateStaffDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button
+          <SubmitButton
+            type="button"
             variant={isActive ? "destructive" : "default"}
             onClick={confirm}
-            disabled={isPending}
+            pending={isPending}
+            pendingLabel="Guardando..."
           >
-            {isPending ? "Guardando..." : isActive ? "Desactivar" : "Activar"}
-          </Button>
+            {isActive ? "Desactivar" : "Activar"}
+          </SubmitButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
