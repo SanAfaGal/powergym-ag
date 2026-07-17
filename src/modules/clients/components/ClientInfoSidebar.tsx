@@ -19,6 +19,16 @@ function calculateAge(birthDate: string) {
   return age;
 }
 
+function formatDateTime(d: string) {
+  return new Date(d).toLocaleString("es-CO", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -91,6 +101,10 @@ export function ClientInfoSidebar({
         <Field
           label="Cliente desde"
           value={new Date(client.created_at).toLocaleDateString("es-CO")}
+        />
+        <Field
+          label="Última actualización"
+          value={formatDateTime(client.updated_at)}
         />
       </dl>
 
