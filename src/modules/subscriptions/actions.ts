@@ -22,6 +22,8 @@ const PAYMENT_OVERPAYMENT_ERROR_MESSAGE =
   "El monto supera el saldo pendiente de la suscripción";
 const PAYMENT_INVALID_STATUS_ERROR_MESSAGE =
   "Esta suscripción no puede recibir pagos en su estado actual";
+const PAYMENT_FUTURE_DATE_ERROR_MESSAGE =
+  "La fecha del pago no puede ser posterior a hoy";
 
 // Same pattern, for create_subscription/renew_subscription's guards
 // (migration 0027). The "no price effective" message interpolates the
@@ -130,13 +132,15 @@ export async function recordPayment(
     p_method: parsed.data.payment_method,
     p_notes: parsed.data.notes || null,
     p_bank_account_id: parsed.data.bank_account_id || null,
+    p_payment_date: parsed.data.payment_date,
   });
 
   if (error) {
     return {
       error:
         error.message === PAYMENT_OVERPAYMENT_ERROR_MESSAGE ||
-        error.message === PAYMENT_INVALID_STATUS_ERROR_MESSAGE
+        error.message === PAYMENT_INVALID_STATUS_ERROR_MESSAGE ||
+        error.message === PAYMENT_FUTURE_DATE_ERROR_MESSAGE
           ? error.message
           : "No se pudo registrar el pago",
     };

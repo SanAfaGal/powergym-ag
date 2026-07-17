@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { bogotaToday } from "@/lib/date/bogota";
 
 const planId = z.string().min(1, "Seleccioná un plan");
 const startDate = z.string().min(1, "Seleccioná una fecha de inicio");
@@ -40,6 +41,10 @@ export const paymentSchema = z.object({
   amount,
   payment_method: paymentMethod,
   bank_account_id: z.string().optional().or(z.literal("")),
+  payment_date: z
+    .string()
+    .min(1, "Seleccioná una fecha de pago")
+    .refine((v) => v <= bogotaToday(), "La fecha del pago no puede ser posterior a hoy"),
   notes: z
     .string()
     .trim()

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { bogotaToday } from "@/lib/date/bogota";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,7 @@ export function RecordPaymentDialog({
       amount: remaining,
       payment_method: "",
       bank_account_id: "",
+      payment_date: bogotaToday(),
       notes: "",
     },
   });
@@ -91,6 +93,7 @@ export function RecordPaymentDialog({
         amount: remaining,
         payment_method: "",
         bank_account_id: "",
+        payment_date: bogotaToday(),
         notes: "",
       });
     }
@@ -144,6 +147,19 @@ export function RecordPaymentDialog({
                       onBlur={field.onBlur}
                       name={field.name}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="payment_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de pago</FormLabel>
+                  <FormControl>
+                    <Input type="date" max={bogotaToday()} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
