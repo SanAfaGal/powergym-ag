@@ -25,7 +25,6 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { SignOutButton } from "@/components/shared/SignOutButton";
 import { signOut } from "@/modules/auth";
 
@@ -87,7 +86,6 @@ export function AppSidebar({
                     >
                       <link.icon />
                       <span>{link.label}</span>
-                      <LinkPendingIndicator className="group-data-[collapsible=icon]:hidden" />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

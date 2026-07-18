@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { getAuthContext } from "@/lib/auth/session";
 import {
   listBankAccounts,
@@ -34,7 +33,6 @@ export default async function BankAccountsPage() {
             nativeButton={false}
           >
             Nueva cuenta
-            <LinkPendingIndicator className="ml-1.5" />
           </Button>
         }
       />

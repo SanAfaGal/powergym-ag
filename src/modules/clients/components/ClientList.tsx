@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import type { ClientWithSubscription } from "../queries";
 import { ClientTable } from "./ClientTable";
 import { ClientCards } from "./ClientCards";
@@ -27,7 +26,6 @@ export function ClientList({
             size="sm"
           >
             Registrar el primer cliente
-            <LinkPendingIndicator className="ml-1.5" />
           </Button>
         )}
       </div>

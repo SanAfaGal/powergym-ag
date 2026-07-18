@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import {
   listClients,
   listExpiringClients,
@@ -120,7 +119,6 @@ export default async function ClientsPage({
         actions={
           <Button render={<Link href="/clients/new" />} nativeButton={false}>
             Nuevo cliente
-            <LinkPendingIndicator className="ml-1.5" />
           </Button>
         }
       />

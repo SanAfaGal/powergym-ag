@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LinkPendingIndicator } from "./LinkPendingIndicator";
 
 export function Pager({
   page,
@@ -32,7 +31,6 @@ export function Pager({
           disabled={page <= 1}
         >
           Anterior
-          <LinkPendingIndicator className="ml-1" />
         </Button>
         <Button
           render={<Link href={buildHref(page + 1)} />}
@@ -42,7 +40,6 @@ export function Pager({
           disabled={page >= totalPages}
         >
           Siguiente
-          <LinkPendingIndicator className="ml-1" />
         </Button>
       </div>
     </div>
