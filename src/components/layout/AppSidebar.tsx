@@ -7,7 +7,6 @@ import {
   CreditCard,
   Landmark,
   LayoutDashboard,
-  LogOut,
   Moon,
   Sun,
   UserCog,
@@ -26,6 +25,8 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
+import { SignOutButton } from "@/components/shared/SignOutButton";
 import { signOut } from "@/modules/auth";
 
 const NAV_LINKS = [
@@ -86,6 +87,7 @@ export function AppSidebar({
                     >
                       <link.icon />
                       <span>{link.label}</span>
+                      <LinkPendingIndicator className="group-data-[collapsible=icon]:hidden" />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -135,18 +137,7 @@ export function AppSidebar({
               <Moon className="hidden dark:block" />
             </Button>
             <form action={signOut} className="flex-1 group-data-[collapsible=icon]:w-8">
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="w-full border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
-                aria-label="Cerrar sesión"
-              >
-                <LogOut />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  Cerrar sesión
-                </span>
-              </Button>
+              <SignOutButton />
             </form>
           </div>
         </div>
