@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -24,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { SignOutButton } from "@/components/shared/SignOutButton";
 import { signOut } from "@/modules/auth";
@@ -58,6 +60,15 @@ export function AppSidebar({
   const links = isAdmin ? [...NAV_LINKS, ...ADMIN_NAV_LINKS] : NAV_LINKS;
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const { setOpenMobile } = useSidebar();
+
+  // Closes the mobile drawer on navigation -- reacting to pathname rather
+  // than an onClick per link also covers BackLink (router.push, not <Link>)
+  // and any other navigation source. No-op on desktop, which uses `open`/
+  // `setOpen` instead.
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   return (
     <Sidebar variant="floating" collapsible="icon">
