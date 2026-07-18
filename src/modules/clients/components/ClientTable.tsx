@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,9 +10,11 @@ import {
 import { Button } from "@/components/ui/button";
 import type { ClientWithSubscription } from "../queries";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
 import { GenderIcon } from "../lib/genderIcon";
+import { ViewClientIcon } from "./ViewClientIcon";
 
 export function ClientTable({
   clients,
@@ -49,6 +50,7 @@ export function ClientTable({
                       className="hover:underline"
                     >
                       {client.first_name} {client.last_name}
+                      <LinkPendingIndicator className="ml-1.5" />
                     </Link>
                     {client.alias && (
                       <span className="ml-1.5 font-normal text-muted-foreground">
@@ -122,7 +124,7 @@ export function ClientTable({
                   size="icon-sm"
                   aria-label="Ver cliente"
                 >
-                  <Eye />
+                  <ViewClientIcon />
                 </Button>
               </TableCell>
             </TableRow>

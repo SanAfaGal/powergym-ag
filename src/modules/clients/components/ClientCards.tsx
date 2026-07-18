@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import type { ClientWithSubscription } from "../queries";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { ContactLinks } from "./ContactLinks";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
@@ -32,6 +33,7 @@ export function ClientCards({
                     ({client.alias})
                   </span>
                 )}
+                <LinkPendingIndicator className="ml-1.5" />
               </Link>
             </div>
             <StatusBadge isActive={client.is_active} />
