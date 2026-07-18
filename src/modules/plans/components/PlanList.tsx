@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import type { Plan } from "../queries";
 import { PlanTable } from "./PlanTable";
 import { PlanCards } from "./PlanCards";
@@ -24,6 +25,7 @@ export function PlanList({
             size="sm"
           >
             Crear el primer plan
+            <LinkPendingIndicator className="ml-1.5" />
           </Button>
         )}
       </div>

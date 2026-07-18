@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { BankAccountTable } from "./BankAccountTable";
 import { BankAccountCards } from "./BankAccountCards";
 import type { BankAccount, CatalogEntry } from "../queries";
@@ -25,6 +26,7 @@ export function BankAccountList({
           size="sm"
         >
           Agregar la primera cuenta
+          <LinkPendingIndicator className="ml-1.5" />
         </Button>
       </div>
     );
