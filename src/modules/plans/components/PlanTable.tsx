@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,7 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { DURATION_UNIT_LABELS, type Plan } from "../queries";
+import { ViewPlanIcon } from "./ViewPlanIcon";
 
 type PlanRow = Plan & { currentPrice: number | null };
 
@@ -35,6 +36,7 @@ export function PlanTable({ plans }: { plans: PlanRow[] }) {
               <TableCell className="font-medium">
                 <Link href={`/plans/${plan.id}`} className="hover:underline">
                   {plan.name}
+                  <LinkPendingIndicator className="ml-1.5" />
                 </Link>
               </TableCell>
               <TableCell>
@@ -58,7 +60,7 @@ export function PlanTable({ plans }: { plans: PlanRow[] }) {
                   size="icon-sm"
                   aria-label="Ver plan"
                 >
-                  <Eye />
+                  <ViewPlanIcon />
                 </Button>
               </TableCell>
             </TableRow>

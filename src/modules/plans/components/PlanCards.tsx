@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { LinkPendingIndicator } from "@/components/shared/LinkPendingIndicator";
 import { DURATION_UNIT_LABELS, type Plan } from "../queries";
 
 type PlanRow = Plan & { currentPrice: number | null };
@@ -16,6 +17,7 @@ export function PlanCards({ plans }: { plans: PlanRow[] }) {
               className="font-medium hover:underline"
             >
               {plan.name}
+              <LinkPendingIndicator className="ml-1.5" />
             </Link>
             <StatusBadge isActive={plan.is_active} />
           </div>
