@@ -12,7 +12,7 @@ import {
   listPaymentTypes,
   SubscriptionsSection,
 } from "@/modules/subscriptions";
-import { listActiveBankAccounts, listBankAccounts } from "@/modules/bank-accounts";
+import { listBankAccounts } from "@/modules/bank-accounts";
 
 export default async function ClientDetailPage({
   params,
@@ -21,30 +21,27 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params;
 
-  let client;
-  try {
-    client = await getClient(id);
-  } catch {
-    notFound();
-  }
-
   const [
+    client,
     documentTypes,
     genderTypes,
     subscriptions,
     plans,
     paymentTypes,
-    activeBankAccounts,
     allBankAccounts,
   ] = await Promise.all([
+    getClient(id).catch(() => null),
     listDocumentTypes(),
     listGenderTypes(),
     listClientSubscriptions(id),
     listActivePlansWithPrice(),
     listPaymentTypes(),
-    listActiveBankAccounts(),
     listBankAccounts(),
   ]);
+
+  if (!client) notFound();
+
+  const activeBankAccounts = allBankAccounts.filter((a) => a.is_active);
 
   return (
     <>

@@ -27,18 +27,6 @@ export const listBankAccounts = cache(async () => {
   return (data ?? []) as BankAccount[];
 });
 
-export const listActiveBankAccounts = cache(async () => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("bank_accounts")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as BankAccount[];
-});
-
 // React's cache() rather than next/cache's unstable_cache() -- see the note
 // on listDocumentTypes in src/modules/clients/queries.ts for why.
 export const listBanks = cache(async () => {
