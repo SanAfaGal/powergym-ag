@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import logo from "@/app/logo.svg";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Form,
   FormControl,
@@ -88,13 +88,13 @@ export function LoginForm({ inactiveAccount }: { inactiveAccount?: boolean }) {
             {serverError && (
               <p className="text-sm text-destructive">{serverError}</p>
             )}
-            <Button
-              type="submit"
+            <SubmitButton
+              pending={form.formState.isSubmitting}
+              pendingLabel="Ingresando..."
               className="mt-2 w-full"
-              disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? "Ingresando..." : "Ingresar"}
-            </Button>
+              Ingresar
+            </SubmitButton>
           </form>
         </Form>
       </div>
