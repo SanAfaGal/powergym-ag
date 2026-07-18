@@ -56,11 +56,10 @@ export const getAuthContext = cache(async () => {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
 
-  if (!user) return null;
+  if (!data) return null;
+  const user = { id: data.claims.sub };
 
   const { data: profile } = await supabase
     .from("profiles")
