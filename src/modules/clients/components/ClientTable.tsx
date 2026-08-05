@@ -15,11 +15,14 @@ import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
 import { GenderIcon } from "../lib/genderIcon";
 import { ViewClientIcon } from "./ViewClientIcon";
+import { ReminderActions } from "./ReminderActions";
 
 export function ClientTable({
   clients,
+  today,
 }: {
   clients: ClientWithSubscription[];
+  today: string;
 }) {
   return (
     <div className="hidden md:block">
@@ -117,15 +120,25 @@ export function ClientTable({
                 <StatusBadge isActive={client.is_active} />
               </TableCell>
               <TableCell className="sticky right-0 bg-background text-right transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--primary)_5%)]">
-                <Button
-                  render={<Link href={`/clients/${client.id}`} />}
-                  nativeButton={false}
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Ver cliente"
-                >
-                  <ViewClientIcon />
-                </Button>
+                <div className="flex items-center justify-end gap-1.5">
+                  {client.subscription_status === "active" && client.end_date && (
+                    <ReminderActions
+                      firstName={client.first_name}
+                      endDate={client.end_date}
+                      phone={client.phone}
+                      today={today}
+                    />
+                  )}
+                  <Button
+                    render={<Link href={`/clients/${client.id}`} />}
+                    nativeButton={false}
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Ver cliente"
+                  >
+                    <ViewClientIcon />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

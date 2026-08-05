@@ -17,6 +17,8 @@ export { ClientList } from "./components/ClientList";
 export { ClientFilters } from "./components/ClientFilters";
 export { CopyExpiringButton } from "./components/CopyExpiringButton";
 export { formatExpiringClientsSummary } from "./lib/formatExpiringClientsSummary";
+export { CopyRenewalRemindersButton } from "./components/CopyRenewalRemindersButton";
+export { formatRenewalRemindersExcel } from "./lib/formatRenewalRemindersExcel";
 export { Pager } from "@/components/shared/Pager";
 export { StatusBadge } from "@/components/shared/StatusBadge";
 export { ContactLinks } from "./components/ContactLinks";

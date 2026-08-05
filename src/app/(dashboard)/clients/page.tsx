@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { bogotaToday } from "@/lib/date/bogota";
 import {
   listClients,
   listExpiringClients,
@@ -8,6 +9,8 @@ import {
   ClientFilters,
   CopyExpiringButton,
   formatExpiringClientsSummary,
+  CopyRenewalRemindersButton,
+  formatRenewalRemindersExcel,
   Pager,
   type SortOption,
 } from "@/modules/clients";
@@ -60,6 +63,7 @@ export default async function ClientsPage({
     ? (params.sort as SortOption)
     : "days_remaining_asc";
   const page = Math.max(1, Number(params.page) || 1);
+  const today = bogotaToday();
 
   const [{ clients, total, pageSize }, plans, expiringClients] =
     await Promise.all([
@@ -138,19 +142,32 @@ export default async function ClientsPage({
       </div>
 
       {isExpiringFilterActive && (
-        <div className="mb-4">
-          <CopyExpiringButton
-            text={formatExpiringClientsSummary(
-              expiresFrom,
-              expiresTo,
-              expiringClients
-            )}
-            count={expiringClients.length}
-          />
+        <div className="mb-4 flex flex-col gap-3 rounded-lg border border-dashed border-border bg-secondary/30 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-0.5">
+            <p className="text-sm font-medium">Recordatorios de vencimiento</p>
+            <p className="text-xs text-muted-foreground">
+              Copiá la lista para revisar quién vence, o exportá teléfono y
+              mensaje listos para pegar en Excel y enviar por WhatsApp.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <CopyExpiringButton
+              text={formatExpiringClientsSummary(
+                expiresFrom,
+                expiresTo,
+                expiringClients
+              )}
+              count={expiringClients.length}
+            />
+            <CopyRenewalRemindersButton
+              text={formatRenewalRemindersExcel(expiringClients, today)}
+              count={expiringClients.length}
+            />
+          </div>
         </div>
       )}
 
-      <ClientList clients={clients} hasFilters={hasFilters} />
+      <ClientList clients={clients} hasFilters={hasFilters} today={today} />
 
       <div className="mt-4">
         <Pager

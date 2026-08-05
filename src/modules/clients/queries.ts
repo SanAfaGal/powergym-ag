@@ -144,8 +144,10 @@ export async function listClients({
 export type ExpiringClient = {
   client_id: string;
   client_name: string;
+  first_name: string;
   end_date: string;
   plan_name: string | null;
+  phone: string | null;
 };
 
 // Dedicated, unpaged fetch backing ONLY the "Copiar lista" button -- the
@@ -162,7 +164,7 @@ export async function listExpiringClients(
   const supabase = await createClient();
   let query = supabase
     .from("client_subscription_overview")
-    .select("id, first_name, last_name, end_date, plan_name")
+    .select("id, first_name, last_name, end_date, plan_name, phone")
     .eq("subscription_status", "active")
     .gte("end_date", expiresFrom)
     .lte("end_date", expiresTo);
@@ -176,8 +178,10 @@ export async function listExpiringClients(
   return (data ?? []).map((r) => ({
     client_id: r.id,
     client_name: `${r.first_name} ${r.last_name}`,
+    first_name: r.first_name as string,
     end_date: r.end_date as string,
     plan_name: r.plan_name,
+    phone: r.phone,
   }));
 }
 

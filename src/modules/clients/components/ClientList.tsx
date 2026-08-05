@@ -7,9 +7,11 @@ import { ClientCards } from "./ClientCards";
 export function ClientList({
   clients,
   hasFilters,
+  today,
 }: {
   clients: ClientWithSubscription[];
   hasFilters: boolean;
+  today: string;
 }) {
   if (clients.length === 0) {
     return (
@@ -34,8 +36,8 @@ export function ClientList({
 
   return (
     <>
-      <ClientTable clients={clients} />
-      <ClientCards clients={clients} />
+      <ClientTable clients={clients} today={today} />
+      <ClientCards clients={clients} today={today} />
     </>
   );
 }

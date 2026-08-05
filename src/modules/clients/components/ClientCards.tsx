@@ -7,11 +7,14 @@ import { SubscriptionStatusBadge } from "@/modules/subscriptions";
 import { ContactLinks } from "./ContactLinks";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
 import { GenderIcon } from "../lib/genderIcon";
+import { ReminderActions } from "./ReminderActions";
 
 export function ClientCards({
   clients,
+  today,
 }: {
   clients: ClientWithSubscription[];
+  today: string;
 }) {
   return (
     <div className="flex flex-col gap-3 md:hidden">
@@ -84,6 +87,16 @@ export function ClientCards({
               </span>
             )}
           </div>
+          {client.subscription_status === "active" && client.end_date && (
+            <div className="flex items-center justify-end gap-1.5 pt-1">
+              <ReminderActions
+                firstName={client.first_name}
+                endDate={client.end_date}
+                phone={client.phone}
+                today={today}
+              />
+            </div>
+          )}
         </Card>
       ))}
     </div>
