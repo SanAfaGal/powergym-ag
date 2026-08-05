@@ -1,5 +1,6 @@
 import type { ExpiringClient } from "../queries";
 import { formatRenewalReminderMessage } from "./formatRenewalReminderMessage";
+import { toWhatsAppDigits } from "../components/ContactLinks";
 
 // RFC4180-style quoting: without it, a multi-line message pasted into Excel
 // spills across extra rows instead of staying in one "Mensaje" cell.
@@ -16,7 +17,10 @@ export function formatRenewalRemindersExcel(
 ): string {
   return clients
     .map((c) => {
-      const phone = c.phone ? `+57${c.phone}` : "-";
+      // toWhatsAppDigits already handles phones stored with or without the
+      // country code -- some production rows have "57"/"+57" baked in from
+      // a legacy import, so blindly prefixing "+57" here double-counted it.
+      const phone = c.phone ? `+${toWhatsAppDigits(c.phone)}` : "-";
       const message = formatRenewalReminderMessage(c.first_name, c.end_date, today);
       return `${tsvField(phone)}\t${tsvField(message)}`;
     })
