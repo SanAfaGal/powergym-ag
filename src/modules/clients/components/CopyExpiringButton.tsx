@@ -7,5 +7,5 @@ export function CopyExpiringButton({
   text: string;
   count: number;
 }) {
-  return <CopyTextButton text={text} label={`Copiar lista (${count})`} />;
+  return <CopyTextButton text={text} label={`Copiar vencimientos (${count})`} />;
 }
