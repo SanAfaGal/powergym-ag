@@ -21,7 +21,7 @@ export function formatRenewalReminderMessage(
 
   return [
     `Hola, ${firstName}.`,
-    `Te recordamos que tu membresía de PowerGym vence ${when} (${fecha}).`,
+    `Te recordamos que tu membresía de PowerGym finaliza ${when} (${fecha}).`,
     `Si deseas renovarla, por favor presenta en recepción el correspondiente soporte de pago para realizar la renovación.`,
     `¡Te esperamos! 💪`,
   ].join("\n");
