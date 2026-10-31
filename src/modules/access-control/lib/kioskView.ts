@@ -68,13 +68,20 @@ export type ResultView =
   | { kind: "idle" }
   | { kind: "granted"; result: AccessAttemptResult }
   | { kind: "denied"; result: AccessAttemptResult }
+  // an attempt is running: the camera tucks away and the real stages show
+  | { kind: "processing"; stages: StageStatus[] }
   | { kind: "not_recognized" }
   | { kind: "error"; message: string };
 
-// What the result card shows. A camera error (not recoverable) is shown over
-// the camera itself, so it is "idle" here.
+// What the right-hand card shows (and whether the camera tucks away: anything
+// but "idle"). A camera error (not recoverable) is shown over the camera
+// itself, so it is "idle" here.
 export function resultViewFor(state: KioskState): ResultView {
   switch (state.name) {
+    case "CAPTURING":
+    case "RECOGNIZING":
+    case "VALIDATING_MEMBERSHIP":
+      return { kind: "processing", stages: stageStatuses(state) ?? [] };
     case "ACCESS_GRANTED":
       return { kind: "granted", result: state.result };
     case "ACCESS_DENIED":
