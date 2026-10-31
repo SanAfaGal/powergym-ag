@@ -20,3 +20,19 @@ test("the audit log has a way back to the kiosk and no settings form", async ({ 
   await page.getByRole("link", { name: /Control de acceso/ }).first().click();
   await expect(page).toHaveURL(/\/access$/);
 });
+
+test("the filters narrow the log through the URL and can be cleared", async ({ page }) => {
+  await login(page, EMPLOYEE);
+  await page.goto("/access/events");
+
+  await page.getByRole("radio", { name: "Denegados" }).click();
+  await expect(page).toHaveURL(/[?&]result=denied/);
+
+  await page.getByLabel("Buscar cliente").fill("zzz-nadie-se-llama-asi");
+  await expect(page).toHaveURL(/[?&]q=zzz-nadie-se-llama-asi/);
+  await expect(page.getByText("Todavía no hay intentos de acceso")).toBeVisible();
+
+  await page.getByRole("button", { name: "Limpiar" }).click();
+  await expect(page).not.toHaveURL(/result=|q=/);
+  await expect(page.getByLabel("Buscar cliente")).toHaveValue("");
+});

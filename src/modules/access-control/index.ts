@@ -11,9 +11,11 @@ export {
   getEnrollmentStatus,
   getAccessSettings,
   listAccessEvents,
+  getClientAttendance,
   type EnrollmentStatus,
   type AccessSettings,
   type AccessEvent,
+  type AccessEventFilters as AccessEventFilterValues,
 } from "./queries";
 export {
   attemptAccess,
@@ -35,3 +37,5 @@ export { AccessResultPanel } from "./components/AccessResultPanel";
 export { AccessEventsList } from "./components/AccessEventsList";
 export { AccessSettingsForm } from "./components/AccessSettingsForm";
 export { AccessBackLink } from "./components/AccessBackLink";
+export { AccessEventFilters } from "./components/AccessEventFilters";
+export { ClientAttendanceCard } from "./components/ClientAttendanceCard";

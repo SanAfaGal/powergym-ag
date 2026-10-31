@@ -253,6 +253,7 @@ export function AccessKiosk({
       const state = continuity.current?.push(
         nose ? { x: nose.x, y: nose.y } : null,
         analysis.observation.faceCount,
+        analysis.observation.faceWidthRatio,
       );
       if (state === "broken") {
         abort();
@@ -290,6 +291,7 @@ export function AccessKiosk({
       continuity.current.push(
         nose ? { x: nose.x, y: nose.y } : null,
         analysis.observation.faceCount,
+        analysis.observation.faceWidthRatio,
       );
       setChallenge(chosen);
       setPhase("challenge");
