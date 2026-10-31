@@ -13,6 +13,7 @@ const known: Record<string, string> = {
   "invalid threshold": "El umbral debe estar entre 0 y 1",
   "invalid challenges":
     "Elegí al menos una prueba de vida válida",
+  "invalid photo path": "No se pudo guardar la foto",
   "invalid cooldown": "La espera entre ingresos debe estar entre 0 y 60 minutos",
 };
 

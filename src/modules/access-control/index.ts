@@ -12,6 +12,7 @@ export {
   getAccessSettings,
   listAccessEvents,
   getClientAttendance,
+  getClientPhotoUrl,
   type EnrollmentStatus,
   type AccessSettings,
   type AccessEvent,
@@ -22,6 +23,7 @@ export {
   grantConsent,
   enrollFace,
   deleteFaceTemplate,
+  uploadClientPhoto,
   updateAccessSettings,
   type AccessAttemptResult,
 } from "./actions";
