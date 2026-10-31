@@ -271,3 +271,13 @@ Table access_settings {
   readmit_cooldown_minutes integer [not null, default: 2, note: 'check between 0 and 60; a client let in less than this ago is denied as recently_admitted (0 = off)']
   updated_at timestamptz [not null, default: `now()`]
 }
+
+Table client_photos {
+  client_id uuid [pk, ref: - clients.id, note: 'on delete cascade']
+  path text [not null, note: "file in the private storage bucket 'client-photos', under <client_id>/"]
+  consent_id uuid [not null, ref: > biometric_consents.id]
+  created_by uuid [ref: > profiles.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Registration photo. Staff can read the path; written only by set_client_photo, removed with the face template by delete_face_template.'
+}

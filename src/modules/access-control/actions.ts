@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { headers } from "next/headers";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import {
@@ -13,6 +14,7 @@ import {
 import { averageEmbeddings, toPgVector } from "./lib/embedding";
 import { reasonMessage } from "./lib/decisionMessages";
 import { rpcErrorMessage } from "./lib/errorMessages";
+import { PHOTO_BUCKET, checkPhoto, photoStoragePath } from "./lib/photo";
 
 export type AccessAttemptResult = {
   decision: "granted" | "denied";
@@ -154,10 +156,59 @@ export async function enrollFace(
   return { success: true };
 }
 
+// The registration photo, taken in the browser during enrollment. The file goes
+// to the private bucket first and is then recorded (which also checks the
+// consent); if recording fails the file is removed again, and the previous
+// photo's file is removed once the new one is in place.
+export async function uploadClientPhoto(
+  clientId: string,
+  formData: FormData
+): Promise<{ error: string } | { success: true }> {
+  const file = formData.get("photo");
+  if (!(file instanceof File) || !z.string().uuid().safeParse(clientId).success) {
+    return { error: INVALID_DATA_MESSAGE };
+  }
+  const problem = checkPhoto(file);
+  if (problem) return { error: problem };
+
+  const supabase = await createSupabaseClient();
+  const path = photoStoragePath(clientId, crypto.randomUUID());
+
+  const upload = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, file, { contentType: "image/jpeg", upsert: false });
+  if (upload.error) return { error: "No se pudo guardar la foto" };
+
+  const { data, error } = await supabase.rpc("set_client_photo", {
+    p_client_id: clientId,
+    p_path: path,
+  });
+  if (error) {
+    await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+    return { error: rpcErrorMessage(error.message, "No se pudo guardar la foto") };
+  }
+
+  // best effort: the old file is unreachable now (only the new path is recorded)
+  if (typeof data === "string") {
+    await supabase.storage.from(PHOTO_BUCKET).remove([data]);
+  }
+
+  revalidatePath(`/clients/${clientId}`);
+  return { success: true };
+}
+
 export async function deleteFaceTemplate(
   clientId: string
 ): Promise<{ error: string } | { success: true }> {
   const supabase = await createSupabaseClient();
+
+  // read the photo path before the RPC removes its record
+  const { data: photo } = await supabase
+    .from("client_photos")
+    .select("path")
+    .eq("client_id", clientId)
+    .maybeSingle();
+
   const { error } = await supabase.rpc("delete_face_template", {
     p_client_id: clientId,
   });
@@ -169,6 +220,16 @@ export async function deleteFaceTemplate(
   }
 
   revalidatePath(`/clients/${clientId}`);
+
+  if (photo?.path) {
+    const removed = await supabase.storage.from(PHOTO_BUCKET).remove([photo.path]);
+    if (removed.error) {
+      return {
+        error:
+          "Se eliminó el registro facial, pero no se pudo borrar la foto. Avisá al administrador.",
+      };
+    }
+  }
   return { success: true };
 }
 

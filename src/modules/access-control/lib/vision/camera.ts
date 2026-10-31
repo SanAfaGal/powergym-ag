@@ -20,7 +20,8 @@ function classify(error: unknown): CameraErrorKind {
 
 // Front camera at a modest resolution: enough for a 112x112 face crop and
 // light on weak devices. Frames stay in the <video> element and are never
-// stored or uploaded.
+// stored or uploaded; the one exception is the registration photo, taken
+// explicitly during enrollment (see capturePhoto.ts).
 export async function startCamera(
   video: HTMLVideoElement,
 ): Promise<{ stop(): void }> {

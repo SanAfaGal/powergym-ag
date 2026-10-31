@@ -3,6 +3,7 @@ import { bogotaToday } from "@/lib/date/bogota";
 import { summarizeAttendance, type AttendanceSummary } from "./lib/attendance";
 import { bogotaRange } from "./lib/dateRange";
 import type { LivenessChallenge } from "./lib/liveness";
+import { PHOTO_BUCKET } from "./lib/photo";
 
 export type EnrollmentStatus = {
   hasTemplate: boolean;
@@ -193,4 +194,23 @@ export async function getClientAttendance(
     (data ?? []).map((row) => row.occurred_at as string),
     bogotaToday()
   );
+}
+
+const PHOTO_URL_SECONDS = 300;
+
+// A short-lived signed link to the registration photo (the bucket is private),
+// or null when the client has none. Only staff can sign it (storage policy).
+export async function getClientPhotoUrl(clientId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("client_photos")
+    .select("path")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (!row?.path) return null;
+
+  const { data } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .createSignedUrl(row.path, PHOTO_URL_SECONDS);
+  return data?.signedUrl ?? null;
 }
