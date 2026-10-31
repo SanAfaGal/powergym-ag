@@ -64,7 +64,10 @@ test("admin sees dashboard KPIs, breakdowns, and can filter by date range", asyn
   // regardless of exactly what payments exist -- a stronger, non-brittle
   // way to prove the filter round-trips to the server than asserting an
   // exact total.
-  await hastaButton.click();
+  await hastaButton
+    .locator("..")
+    .getByRole("button", { name: "Abrir calendario" })
+    .click();
   await page.getByRole("button", { name: "Go to the Previous Month" }).click();
   await page
     .locator('[data-slot="calendar"]')
@@ -80,4 +83,39 @@ test("admin sees dashboard KPIs, breakdowns, and can filter by date range", asyn
     new RegExp(`start=${monthStart}.*end=${prevMonth15}`)
   );
   await expect(revenueValue).toHaveText("$0");
+});
+
+test("a date can be typed, and an old date is picked with the year dropdown", async ({
+  page,
+}) => {
+  await login(page, ADMIN);
+  await page.goto("/dashboard");
+
+  const desde = page.getByLabel("Desde");
+  await desde.waitFor();
+  // wait for hydration before typing (see the note in the test above)
+  await page.waitForTimeout(300);
+
+  // typing digits is enough: the slashes go in by themselves
+  await desde.fill("");
+  await desde.pressSequentially("05032026");
+  await expect(desde).toHaveValue("05/03/2026");
+  await expect(desde).toHaveAttribute("data-value", "2026-03-05");
+  await expect(page).toHaveURL(/start=2026-03-05/);
+
+  // an impossible date is not kept: leaving the box restores the last good one
+  await desde.fill("");
+  await desde.pressSequentially("31042026");
+  await desde.blur();
+  await expect(desde).toHaveValue("05/03/2026");
+
+  // an old date through the calendar: year and month dropdowns, no month-by-month
+  await desde
+    .locator("..")
+    .getByRole("button", { name: "Abrir calendario" })
+    .click();
+  const calendar = page.locator('[data-slot="calendar"]');
+  await calendar.getByLabel("Choose the Year").selectOption("2024");
+  await calendar.getByRole("button", { name: /, 10 de / }).click();
+  await expect(desde).toHaveAttribute("data-value", /^2024-\d{2}-10$/);
 });
