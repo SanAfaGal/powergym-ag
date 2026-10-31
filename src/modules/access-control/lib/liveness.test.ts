@@ -58,3 +58,16 @@ test("once passed or failed the state is final", () => {
   failed.update(open(0), 2000);
   assert.equal(failed.update(open(30), 2100), "failed");
 });
+
+test("a turn challenge never passes on a first frame that is already turned", () => {
+  const s = createLivenessSession("turn_left", 5000);
+  assert.equal(s.update(open(-40), 0), "pending");
+  assert.equal(s.update(open(-40), 100), "pending");
+});
+
+test("a turn only counts after a frontal frame was seen first", () => {
+  const s = createLivenessSession("turn_right", 5000);
+  assert.equal(s.update(open(40), 0), "pending");
+  assert.equal(s.update(open(3), 100), "pending");
+  assert.equal(s.update(open(40), 200), "passed");
+});

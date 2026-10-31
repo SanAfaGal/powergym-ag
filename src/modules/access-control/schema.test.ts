@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { attemptSchema, embeddingSchema, enrollSchema } from "./schema.ts";
+import {
+  attemptSchema,
+  embeddingSchema,
+  enrollSchema,
+  settingsSchema,
+} from "./schema.ts";
 
 const axis = (i: number): number[] =>
   Array.from({ length: 512 }, (_, k) => (k === i ? 1 : 0));
@@ -44,4 +49,19 @@ test("enrollSchema needs exactly three valid embeddings", () => {
   );
   assert.equal(enrollSchema.safeParse({ ...ok, quality: 1.5 }).success, false);
   assert.equal(enrollSchema.safeParse({ ...ok, clientId: "nope" }).success, false);
+});
+
+test("settingsSchema keeps the threshold within 0..1", () => {
+  assert.equal(
+    settingsSchema.safeParse({ matchThreshold: 0.5, livenessRequired: true }).success,
+    true,
+  );
+  assert.equal(
+    settingsSchema.safeParse({ matchThreshold: 1.01, livenessRequired: true }).success,
+    false,
+  );
+  assert.equal(
+    settingsSchema.safeParse({ matchThreshold: NaN, livenessRequired: true }).success,
+    false,
+  );
 });
