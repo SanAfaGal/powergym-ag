@@ -64,7 +64,9 @@ begin
     raise exception 'client not found';
   end if;
 
-  if vector_dims(p_embedding) <> 512 or vector_norm(p_embedding) = 0 then
+  if p_embedding is null
+     or vector_dims(p_embedding) is distinct from 512
+     or coalesce(vector_norm(p_embedding), 0) = 0 then
     raise exception 'invalid embedding';
   end if;
 

@@ -11,7 +11,7 @@
 --
 -- Every assertion passes an explicit description (see 003_clients.test.sql).
 begin;
-select plan(18);
+select plan(20);
 
 create function pg_temp.mix(a1 real, a2 real default 0) returns extensions.vector
 language sql as $$
@@ -165,6 +165,19 @@ select is(
   (select reason_code from public.register_access_attempt(pg_temp.mix(0.8, 0.6), true, 'recepcion', 'test-agent')),
   'face_not_recognized',
   'with the threshold at 0.9 the same 0.8-similarity face is no longer recognized'
+);
+
+select throws_ok(
+  $$ select * from public.register_access_attempt(null::extensions.vector, true, 'recepcion', 'test-agent') $$,
+  'P0001', 'invalid embedding',
+  'a NULL embedding is rejected (never falls through to a match)'
+);
+
+select is(
+  (select decision || ':' || reason_code || ':' || coalesce(client_id::text, 'null')
+   from public.register_access_attempt(pg_temp.axis(1), null, 'recepcion', 'test-agent')),
+  'denied:liveness_failed:null',
+  'an unknown (NULL) liveness result counts as failed'
 );
 
 reset role;
