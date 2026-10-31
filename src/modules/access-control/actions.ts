@@ -156,6 +156,16 @@ export async function enrollFace(
   return { success: true };
 }
 
+// Deletes a photo file that no record points to. A failure is logged, not
+// ignored, so a leftover file does not go unnoticed.
+async function removePhotoFile(
+  supabase: Awaited<ReturnType<typeof createSupabaseClient>>,
+  path: string
+) {
+  const { error } = await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+  if (error) console.error("client photo cleanup failed", path, error.message);
+}
+
 // The registration photo, taken in the browser during enrollment. The file goes
 // to the private bucket first and is then recorded (which also checks the
 // consent); if recording fails the file is removed again, and the previous
@@ -184,14 +194,13 @@ export async function uploadClientPhoto(
     p_path: path,
   });
   if (error) {
-    await supabase.storage.from(PHOTO_BUCKET).remove([path]);
+    // the file is unreferenced, which staff are allowed to delete (see 0052)
+    await removePhotoFile(supabase, path);
     return { error: rpcErrorMessage(error.message, "No se pudo guardar la foto") };
   }
 
-  // best effort: the old file is unreachable now (only the new path is recorded)
-  if (typeof data === "string") {
-    await supabase.storage.from(PHOTO_BUCKET).remove([data]);
-  }
+  // the old file is unreferenced now (only the new path is recorded)
+  if (typeof data === "string") await removePhotoFile(supabase, data);
 
   revalidatePath(`/clients/${clientId}`);
   return { success: true };

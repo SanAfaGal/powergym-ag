@@ -8,7 +8,7 @@
 --
 -- Every assertion passes an explicit description (see 003_clients.test.sql).
 begin;
-select plan(10);
+select plan(14);
 
 select is(
   (select public from storage.buckets where id = 'client-photos'),
@@ -30,7 +30,7 @@ update public.profiles set role = 'admin'
   where id = tests.get_supabase_uid('ph-admin@example.test');
 
 insert into public.clients (dni_type, dni_number, first_name, last_name)
-values ('CC', 'PH-A', 'Paula', 'Foto');
+values ('CC', 'PH-A', 'Paula', 'Foto'), ('CC', 'PH-B', 'Pedro', 'Antiguo');
 
 select tests.authenticate_as('ph-staff@example.test');
 
@@ -43,7 +43,10 @@ select throws_ok(
 );
 
 select public.grant_biometric_consent(
-  (select id from public.clients where dni_number = 'PH-A'), 'test');
+  (select id from public.clients where dni_number = 'PH-A'), '2026-10-v2');
+-- Pedro consented under the first text, which did not mention a photo
+select public.grant_biometric_consent(
+  (select id from public.clients where dni_number = 'PH-B'), '2026-10-v1');
 
 select throws_ok(
   format($$ select public.set_client_photo(%L, 'otra-carpeta/a.jpg') $$,
@@ -74,6 +77,38 @@ select is(
   (select id::text from public.clients where dni_number = 'PH-A') || '/b.jpg',
   'staff can read the stored path, which is now the new one'
 );
+
+-- who may put files in the bucket: only a client's own folder, with a consent
+-- that covers the photo
+select lives_ok(
+  format($$ insert into storage.objects (bucket_id, name) values ('client-photos', %L) $$,
+    (select id::text from public.clients where dni_number = 'PH-A') || '/up.jpg'),
+  'staff can upload into the folder of a client with a valid consent'
+);
+
+select throws_ok(
+  format($$ insert into storage.objects (bucket_id, name) values ('client-photos', %L) $$,
+    (select id::text from public.clients where dni_number = 'PH-B') || '/up.jpg'),
+  '42501', null,
+  'no upload for a client whose consent predates the photo'
+);
+
+select throws_ok(
+  $$ insert into storage.objects (bucket_id, name) values ('client-photos', 'any-folder/up.jpg') $$,
+  '42501', null,
+  'no upload outside a client folder'
+);
+
+select throws_ok(
+  format($$ select public.set_client_photo(%L, %L) $$,
+    (select id from public.clients where dni_number = 'PH-B'),
+    (select id::text from public.clients where dni_number = 'PH-B') || '/a.jpg'),
+  'P0001', 'photo consent outdated',
+  'a consent given before the photo was mentioned does not cover it'
+);
+
+-- (deleting is checked through the Storage API: Supabase refuses a direct
+-- DELETE on storage tables)
 
 select throws_ok(
   format($$ select public.delete_face_template(%L) $$,

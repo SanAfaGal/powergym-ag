@@ -14,6 +14,8 @@ const known: Record<string, string> = {
   "invalid challenges":
     "Elegí al menos una prueba de vida válida",
   "invalid photo path": "No se pudo guardar la foto",
+  "photo consent outdated":
+    "El consentimiento de este cliente es anterior a la foto: un administrador debe eliminar el registro facial y pedirlo de nuevo",
   "invalid cooldown": "La espera entre ingresos debe estar entre 0 y 60 minutos",
 };
 
