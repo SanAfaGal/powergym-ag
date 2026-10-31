@@ -4,13 +4,16 @@ import {
   CircleXIcon,
   CheckIcon,
   CircleIcon,
+  DumbbellIcon,
   Loader2Icon,
+  ScanFaceIcon,
   TriangleAlertIcon,
+  UserCheckIcon,
   UserRoundXIcon,
 } from "lucide-react";
 import { bogotaToday } from "@/lib/date/bogota";
 import { describeAccessUntil } from "../lib/accessUntil";
-import { firstName, type ResultView, type StageStatus } from "../lib/kioskView";
+import type { ResultView, StageStatus } from "../lib/kioskView";
 
 const STAGES = [
   "Captura realizada",
@@ -50,24 +53,21 @@ export function AccessResultPanel({
   expanded?: boolean;
 }) {
   const big = expanded;
-  const icon = big ? "size-32" : "size-20";
-  const title = big ? "text-5xl" : "text-3xl";
-  const sub = big ? "text-3xl" : "text-xl";
+  const icon = big ? "size-12" : "size-9";
 
   // nothing to show: the camera has the whole stage
   if (view.kind === "idle") return null;
 
   if (view.kind === "processing") {
     return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex h-full min-h-0 flex-col items-center justify-center gap-8 overflow-y-auto rounded-2xl border border-border bg-card p-6 text-center duration-500 animate-in fade-in zoom-in-95"
+      <ResultCard
+        tone="info"
+        icon={<ScanFaceIcon className={icon} />}
+        label="Verificando tu acceso"
+        headline=""
+        big={big}
       >
-        <p className={`font-heading font-bold tracking-tight ${title}`}>
-          Verificando tu acceso
-        </p>
-        <ol className="flex w-full max-w-xl flex-col gap-5 text-left">
+        <ol className="flex w-full flex-col gap-5 text-left">
           {STAGES.map((label, i) => {
             const status = view.stages[i] ?? "pending";
             return (
@@ -86,35 +86,33 @@ export function AccessResultPanel({
             );
           })}
         </ol>
-      </div>
+      </ResultCard>
     );
   }
 
-  const shell =
-    "flex h-full min-h-0 flex-col items-center justify-center gap-4 overflow-y-auto rounded-2xl border-2 p-6 text-center duration-500 animate-in fade-in zoom-in-95";
-
   if (view.kind === "not_recognized") {
     return (
-      <div role="status" className={`${shell} border-warning/50 bg-warning/10 text-warning`}>
-        <UserRoundXIcon className={`shrink-0 ${icon}`} />
-        <p className={`font-heading font-bold tracking-tight ${title}`}>
-          No pudimos identificarte
-        </p>
-        <p className={`text-foreground ${sub}`}>
-          Ubícate de frente a la cámara y lo intentamos de nuevo.
-        </p>
-      </div>
+      <ResultCard
+        tone="warning"
+        icon={<UserRoundXIcon className={icon} />}
+        label="No identificado"
+        headline="No pudimos identificarte"
+        body="Ubícate de frente a la cámara y lo intentamos de nuevo."
+        big={big}
+      />
     );
   }
 
   if (view.kind === "error") {
     return (
-      <div role="status" className={`${shell} border-destructive/50 bg-destructive/10 text-destructive`}>
-        <TriangleAlertIcon className={`shrink-0 ${icon}`} />
-        <p className={`font-heading font-bold tracking-tight ${title}`}>Algo salió mal</p>
-        <p className={`text-foreground ${sub}`}>{view.message}</p>
-        <p className="text-muted-foreground">Volvemos a intentarlo en unos segundos.</p>
-      </div>
+      <ResultCard
+        tone="error"
+        icon={<TriangleAlertIcon className={icon} />}
+        label="Algo salió mal"
+        headline={view.message}
+        body="Volvemos a intentarlo en unos segundos."
+        big={big}
+      />
     );
   }
 
@@ -124,68 +122,162 @@ export function AccessResultPanel({
   const until = client?.endDate
     ? describeAccessUntil(client.endDate, bogotaToday())
     : null;
-  const name = client ? firstName(client.fullName) : "";
+  const name = client?.fullName ?? "";
+
+  // Just let in a moment ago: not a real denial, so no alarm color and no
+  // membership details, only the name and one short line.
+  if (result.reasonCode === "recently_admitted") {
+    return (
+      <ResultCard
+        tone="warning"
+        icon={<UserCheckIcon className={icon} />}
+        label="Ya ingresaste"
+        headline={name}
+        body="Tu ingreso ya quedó registrado."
+        big={big}
+      />
+    );
+  }
+
+  const visits = client?.visitsThisMonth ?? null;
 
   return (
-    <div
-      role="status"
-      className={`${shell} ${
-        granted
-          ? "border-success/50 bg-success/10 text-success"
-          : "border-destructive/50 bg-destructive/10 text-destructive"
-      }`}
+    <ResultCard
+      tone={granted ? "success" : "error"}
+      icon={
+        granted ? (
+          <CircleCheckBigIcon className={icon} />
+        ) : (
+          <CircleXIcon className={icon} />
+        )
+      }
+      label={granted ? "Acceso autorizado" : "Acceso denegado"}
+      headline={name}
+      body={granted ? undefined : result.message}
+      big={big}
     >
-      {granted ? (
-        <CircleCheckBigIcon className={`shrink-0 ${icon}`} />
-      ) : (
-        <CircleXIcon className={`shrink-0 ${icon}`} />
-      )}
-
-      {granted ? (
-        <>
-          <p className={`font-heading font-bold tracking-tight ${title}`}>
-            {name ? `¡Bienvenido, ${name}!` : "¡Bienvenido!"}
-          </p>
-          <p className={`font-medium ${sub}`}>Acceso autorizado</p>
-        </>
-      ) : (
-        <>
-          <p className={`font-heading font-bold tracking-tight ${title}`}>
-            Acceso denegado
-          </p>
-          <p className={`font-medium ${sub}`}>{result.message}</p>
-          {name && (
-            <p className={`text-foreground ${big ? "text-3xl" : "text-xl"}`}>{name}</p>
-          )}
-        </>
-      )}
-
-      {until && (
-        <div
-          className={`flex w-full flex-col items-center gap-3 text-foreground ${
-            big ? "max-w-4xl" : "max-w-xl"
-          }`}
-        >
-          {/* One line: "Puede ingresar hasta el domingo, 29 de noviembre · Le
-              quedan 29 días". Only wraps (at the separator) on a narrow screen. */}
-          <p
-            className={`font-semibold ${UNTIL_TONE[until.tone]} ${
-              big ? "text-2xl" : "text-lg"
-            }`}
-          >
-            <span className="lg:whitespace-nowrap">
-              <CalendarCheckIcon className="mr-2 inline size-6 align-[-4px]" />
-              {until.headline}
-            </span>
-            {until.detail && (
-              <span className="font-normal text-muted-foreground lg:whitespace-nowrap">
-                {" · "}
-                {until.detail}
+      {(until || visits !== null) && (
+        <div className="flex flex-col gap-5">
+          {until && (
+            <div className="flex items-center gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <CalendarCheckIcon className="size-6" />
               </span>
-            )}
-          </p>
+              <div className="min-w-0">
+                {/* Fewest words: while the membership is fine only the days
+                    left show; the full date appears when it is the last day
+                    or already expired, where it is the point. */}
+                <p
+                  className={`font-semibold ${UNTIL_TONE[until.tone]} ${
+                    big ? "text-2xl" : "text-lg"
+                  }`}
+                >
+                  {until.tone === "ok" && until.detail
+                    ? until.detail
+                    : until.headline}
+                </p>
+                {until.tone !== "ok" && until.detail && (
+                  <p className={`text-muted-foreground ${big ? "text-xl" : "text-base"}`}>
+                    {until.detail}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {visits !== null && (
+            <div className="flex items-center gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <DumbbellIcon className="size-6" />
+              </span>
+              <p className={`font-semibold ${big ? "text-2xl" : "text-lg"}`}>
+                {visits === 1
+                  ? "1 asistencia este mes"
+                  : `${visits} asistencias este mes`}
+              </p>
+            </div>
+          )}
         </div>
       )}
+    </ResultCard>
+  );
+}
+
+const TONES = {
+  info: "border-primary/40 bg-primary text-primary-foreground",
+  success: "border-success/40 bg-success text-success-foreground",
+  warning: "border-warning/40 bg-warning text-warning-foreground",
+  error: "border-destructive/40 bg-destructive text-white",
+} as const;
+
+// One card for every outcome: a solid status band (what happened, readable
+// from across the room), then the person / reason, then optional details.
+// Capped in width so it stays a card instead of stretching over the stage.
+function ResultCard({
+  tone,
+  icon,
+  label,
+  eyebrow,
+  headline,
+  body,
+  big,
+  children,
+}: {
+  tone: keyof typeof TONES;
+  icon: React.ReactNode;
+  label: string;
+  eyebrow?: string;
+  headline: string;
+  body?: string;
+  big: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto p-4">
+      {/* No drop shadow: the stage clips overflow, so a shadow would show up as
+          a cut-off dark edge. A solid border keeps the card clean. */}
+      <div
+        role="status"
+        className="w-full max-w-3xl overflow-hidden rounded-lg border-2 bg-card duration-500 animate-in fade-in zoom-in-95"
+      >
+        <div className={`flex items-center gap-4 border-b px-8 py-5 ${TONES[tone]}`}>
+          <span className="shrink-0">{icon}</span>
+          <p
+            className={`font-heading font-bold uppercase tracking-wide ${
+              big ? "text-3xl" : "text-xl"
+            }`}
+          >
+            {label}
+          </p>
+        </div>
+        <div className="flex flex-col gap-6 px-8 py-8">
+          <div className="flex flex-col gap-2">
+            {eyebrow && (
+              <p className={`text-muted-foreground ${big ? "text-2xl" : "text-lg"}`}>
+                {eyebrow}
+              </p>
+            )}
+            {headline && (
+              <p
+                className={`font-heading font-bold leading-tight tracking-tight ${
+                  big ? "text-5xl" : "text-3xl"
+                }`}
+              >
+                {headline}
+              </p>
+            )}
+            {body && (
+              <p className={`text-muted-foreground ${big ? "text-2xl" : "text-lg"}`}>
+                {body}
+              </p>
+            )}
+          </div>
+          {children && (
+            <div className={eyebrow || headline || body ? "border-t pt-6" : ""}>
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
