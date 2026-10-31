@@ -11,7 +11,7 @@
 --
 -- Every assertion passes an explicit description (see 003_clients.test.sql).
 begin;
-select plan(20);
+select plan(21);
 
 create function pg_temp.mix(a1 real, a2 real default 0) returns extensions.vector
 language sql as $$
@@ -178,6 +178,12 @@ select is(
    from public.register_access_attempt(pg_temp.axis(1), null, 'recepcion', 'test-agent')),
   'denied:liveness_failed:null',
   'an unknown (NULL) liveness result counts as failed'
+);
+
+select is(
+  (select to_jsonb(r) ? 'match_score' from public.register_access_attempt(pg_temp.axis(9), true, 'recepcion', 'test-agent') r),
+  false,
+  'the result never exposes the similarity score (it would be a hill-climbing oracle); it stays in access_events'
 );
 
 reset role;

@@ -25,7 +25,6 @@ export type AccessAttemptResult = {
     subscriptionStatus: string | null;
     endDate: string | null;
   } | null;
-  matchScore: number | null;
 };
 
 const INVALID_DATA_MESSAGE = "Revisá los datos ingresados";
@@ -57,6 +56,8 @@ export async function attemptAccess(
     };
   }
 
+  // The similarity score is deliberately not part of the result: exposing it
+  // would let a caller hill-climb an embedding. It lives in access_events.
   const row = (data ?? [])[0] as
     | {
         decision: "granted" | "denied";
@@ -66,7 +67,6 @@ export async function attemptAccess(
         alias: string | null;
         subscription_status: string | null;
         end_date: string | null;
-        match_score: number | null;
       }
     | undefined;
 
@@ -89,7 +89,6 @@ export async function attemptAccess(
             endDate: row.end_date,
           }
         : null,
-      matchScore: row.match_score,
     },
   };
 }

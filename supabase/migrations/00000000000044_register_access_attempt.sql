@@ -10,7 +10,9 @@
 -- recorded. Events hold the outcome only: never an embedding or an image.
 --
 -- The result reveals client details only when the face was identified; an
--- unrecognized face returns no client. Exception messages are an exact-match
+-- unrecognized face returns no client. It never returns the similarity score
+-- (a score the caller can read is an oracle for hill-climbing a template);
+-- the score is kept in access_events for audit only. Exception messages are an exact-match
 -- contract with the server actions: 'staff only', 'admin only',
 -- 'invalid embedding', 'invalid threshold'.
 
@@ -26,8 +28,7 @@ create function public.register_access_attempt(
   full_name text,
   alias text,
   subscription_status text,
-  end_date date,
-  match_score real
+  end_date date
 )
 language plpgsql
 security definer
@@ -68,7 +69,7 @@ begin
       p_device_label, p_user_agent, auth.uid()
     );
     return query select 'denied'::text, 'liveness_failed'::text, null::uuid,
-      null::text, null::text, null::text, null::date, null::real;
+      null::text, null::text, null::text, null::date;
     return;
   end if;
 
@@ -89,7 +90,7 @@ begin
       p_device_label, p_user_agent, auth.uid()
     );
     return query select 'denied'::text, 'face_not_recognized'::text, null::uuid,
-      null::text, null::text, null::text, null::date, v_score;
+      null::text, null::text, null::text, null::date;
     return;
   end if;
 
@@ -108,7 +109,7 @@ begin
   return query
   select v_decision, v_reason, c.id,
     c.first_name || ' ' || c.last_name, c.alias,
-    o.subscription_status::text, o.end_date, v_score
+    o.subscription_status::text, o.end_date
   from public.clients c
   join public.client_subscription_overview o on o.id = c.id
   where c.id = v_client;
