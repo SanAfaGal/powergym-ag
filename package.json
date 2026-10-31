@@ -12,7 +12,8 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:unit": "node --test \"src/modules/access-control/**/*.test.ts\""
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
