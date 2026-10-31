@@ -56,6 +56,7 @@ test("settingsSchema keeps the threshold within 0..1", () => {
     matchThreshold: 0.5,
     livenessRequired: true,
     livenessChallenges: ["blink"],
+    readmitCooldownMinutes: 2,
   };
   assert.equal(settingsSchema.safeParse(ok).success, true);
   assert.equal(settingsSchema.safeParse({ ...ok, matchThreshold: 1.01 }).success, false);
@@ -63,7 +64,7 @@ test("settingsSchema keeps the threshold within 0..1", () => {
 });
 
 test("settingsSchema only accepts known challenges and needs one when liveness is on", () => {
-  const base = { matchThreshold: 0.5, livenessRequired: true };
+  const base = { matchThreshold: 0.5, livenessRequired: true, readmitCooldownMinutes: 2 };
   assert.equal(
     settingsSchema.safeParse({ ...base, livenessChallenges: ["blink", "turn_any"] }).success,
     true,
@@ -80,6 +81,27 @@ test("settingsSchema only accepts known challenges and needs one when liveness i
     settingsSchema.safeParse({ ...base, livenessRequired: false, livenessChallenges: [] }).success,
     true,
   );
+});
+
+test("settingsSchema keeps the re-entry cooldown to whole minutes within 0..60", () => {
+  const ok = {
+    matchThreshold: 0.5,
+    livenessRequired: false,
+    livenessChallenges: [],
+    readmitCooldownMinutes: 2,
+  };
+  for (const minutes of [0, 2, 60]) {
+    assert.equal(
+      settingsSchema.safeParse({ ...ok, readmitCooldownMinutes: minutes }).success,
+      true,
+    );
+  }
+  for (const minutes of [-1, 61, 1.5, NaN]) {
+    assert.equal(
+      settingsSchema.safeParse({ ...ok, readmitCooldownMinutes: minutes }).success,
+      false,
+    );
+  }
 });
 
 test("enrollSchema accepts the non-RFC uuids used by the seeded clients", () => {

@@ -267,5 +267,7 @@ Table access_settings {
   id boolean [pk, default: true, note: 'check (id): single-row table']
   match_threshold real [not null, default: 0.5, note: 'check between 0 and 1; cosine similarity']
   liveness_required boolean [not null, default: true]
+  liveness_challenges "text[]" [not null, default: `array['blink','open_mouth','smile']`, note: "subset of blink, open_mouth, smile, turn_any"]
+  readmit_cooldown_minutes integer [not null, default: 2, note: 'check between 0 and 60; a client let in less than this ago is denied as recently_admitted (0 = off)']
   updated_at timestamptz [not null, default: `now()`]
 }

@@ -30,6 +30,7 @@ export function AccessSettingsForm({ settings }: { settings: AccessSettings }) {
   const [challenges, setChallenges] = useState<Set<LivenessChallenge>>(
     new Set(settings.livenessChallenges),
   );
+  const [cooldown, setCooldown] = useState(String(settings.readmitCooldownMinutes));
   const [isPending, startTransition] = useTransition();
 
   function toggle(value: LivenessChallenge, on: boolean) {
@@ -47,6 +48,7 @@ export function AccessSettingsForm({ settings }: { settings: AccessSettings }) {
         Number(threshold),
         liveness,
         [...challenges],
+        Number(cooldown),
       );
       if ("error" in result) {
         toast.error(result.error);
@@ -113,6 +115,28 @@ export function AccessSettingsForm({ settings }: { settings: AccessSettings }) {
             </label>
           ))}
         </fieldset>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-border p-5">
+        <h2 className="font-heading text-lg font-semibold">Reingreso</h2>
+        <div className="space-y-1.5">
+          <Label htmlFor="readmit-cooldown">Espera entre ingresos (minutos)</Label>
+          <Input
+            id="readmit-cooldown"
+            type="number"
+            step="1"
+            min="0"
+            max="60"
+            value={cooldown}
+            onChange={(e) => setCooldown(e.target.value)}
+            className="w-32"
+          />
+          <p className="text-xs text-muted-foreground">
+            Si un cliente ya ingresó hace menos de este tiempo, no se le abre la
+            barrera otra vez. Así nadie la mantiene abierta para que pase otra
+            persona detrás. Entre 0 y 60; con 0 se desactiva.
+          </p>
+        </div>
       </section>
 
       <SubmitButton

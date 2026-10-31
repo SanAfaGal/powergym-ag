@@ -38,6 +38,8 @@ export const settingsSchema = z
     matchThreshold: z.number().min(0).max(1),
     livenessRequired: z.boolean(),
     livenessChallenges: z.array(z.enum(LIVENESS_CHALLENGES)),
+    // minutes before a client who was just let in can be let in again (0 = off)
+    readmitCooldownMinutes: z.number().int().min(0).max(60),
   })
   .refine((v) => !v.livenessRequired || v.livenessChallenges.length > 0, {
     message: "Elegí al menos una prueba de vida",

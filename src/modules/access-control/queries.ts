@@ -15,6 +15,7 @@ export type AccessSettings = {
   matchThreshold: number;
   livenessRequired: boolean;
   livenessChallenges: LivenessChallenge[];
+  readmitCooldownMinutes: number;
 };
 
 export type AccessEvent = {
@@ -61,7 +62,7 @@ export async function getAccessSettings(): Promise<AccessSettings> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("access_settings")
-    .select("match_threshold, liveness_required, liveness_challenges")
+    .select("match_threshold, liveness_required, liveness_challenges, readmit_cooldown_minutes")
     .single();
 
   if (error) throw error;
@@ -70,6 +71,7 @@ export async function getAccessSettings(): Promise<AccessSettings> {
     matchThreshold: data.match_threshold,
     livenessRequired: data.liveness_required,
     livenessChallenges: data.liveness_challenges as LivenessChallenge[],
+    readmitCooldownMinutes: data.readmit_cooldown_minutes,
   };
 }
 
