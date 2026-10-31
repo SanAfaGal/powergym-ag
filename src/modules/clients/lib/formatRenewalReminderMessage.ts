@@ -3,6 +3,7 @@ function relativeWhen(endDate: string, today: string): string {
   const start = new Date(`${today}T00:00:00`);
   const diffDays = Math.round((end.getTime() - start.getTime()) / 86_400_000);
 
+  if (diffDays === -1) return "ayer";
   if (diffDays === 1) return "mañana";
   if (diffDays === 0) return "hoy";
   return `el ${end.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit" })}`;
@@ -17,11 +18,14 @@ export function formatRenewalReminderMessage(
   today: string
 ): string {
   const when = relativeWhen(endDate, today);
+  const isPast = endDate < today;
   const fecha = new Date(`${endDate}T00:00:00`).toLocaleDateString("es-CO");
 
   return [
     `Hola, ${firstName}.`,
-    `Te recordamos que tu membresía de PowerGym finaliza ${when} (${fecha}).`,
+    isPast
+      ? `Te recordamos que tu membresía de PowerGym finalizó ${when} (${fecha}).`
+      : `Te recordamos que tu membresía de PowerGym finaliza ${when} (${fecha}).`,
     `Si deseas renovarla, por favor presenta en recepción el correspondiente soporte de pago para realizar la renovación.`,
     `¡Te esperamos! 💪`,
   ].join("\n");

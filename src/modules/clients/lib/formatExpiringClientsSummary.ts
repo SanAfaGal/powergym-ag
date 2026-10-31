@@ -1,12 +1,20 @@
 import type { ExpiringClient } from "../queries";
 
 export function formatExpiringClientsSummary(
-  from: string,
-  to: string,
+  from: string | undefined,
+  to: string | undefined,
   clients: ExpiringClient[]
 ): string {
   const fmtRange = (d: string) =>
     new Date(`${d}T00:00:00`).toLocaleDateString("es-CO");
+  const rangeLabel =
+    from && to
+      ? `${fmtRange(from)} – ${fmtRange(to)}`
+      : from
+        ? `desde ${fmtRange(from)}`
+        : to
+          ? `hasta ${fmtRange(to)}`
+          : "";
   const fmtDayHeader = (d: string) => {
     const date = new Date(`${d}T00:00:00`);
     const day = date.getDate().toString().padStart(2, "0");
@@ -14,10 +22,10 @@ export function formatExpiringClientsSummary(
     return `${day} de ${month}`;
   };
 
-  const lines = [`Vencimientos ${fmtRange(from)} – ${fmtRange(to)}`, ""];
+  const lines = [`Vencimientos ${rangeLabel}`, ""];
 
   if (clients.length === 0) {
-    lines.push("Sin clientes por vencer en este rango");
+    lines.push("Sin clientes con vencimiento en este rango");
     return lines.join("\n");
   }
 

@@ -58,7 +58,7 @@ export default async function ClientsPage({
   const hasBalance = params.hasBalance === "yes";
   const expiresFrom = params.expiresFrom ?? "";
   const expiresTo = params.expiresTo ?? "";
-  const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
+  const isExpiringFilterActive = Boolean(expiresFrom || expiresTo);
   const sort = VALID_SORTS.includes(params.sort as SortOption)
     ? (params.sort as SortOption)
     : "days_remaining_asc";
@@ -73,14 +73,14 @@ export default async function ClientsPage({
         subscriptionStatus,
         planId: planId || undefined,
         hasBalance,
-        expiresFrom: isExpiringFilterActive ? expiresFrom : undefined,
-        expiresTo: isExpiringFilterActive ? expiresTo : undefined,
+        expiresFrom: expiresFrom || undefined,
+        expiresTo: expiresTo || undefined,
         sort,
         page,
       }),
       listActivePlansWithPrice(),
       isExpiringFilterActive
-        ? listExpiringClients(expiresFrom, expiresTo, {
+        ? listExpiringClients(expiresFrom || undefined, expiresTo || undefined, {
             q,
             status,
             planId: planId || undefined,
@@ -98,8 +98,8 @@ export default async function ClientsPage({
     if (planId) p.set("planId", planId);
     if (hasBalance) p.set("hasBalance", "yes");
     if (isExpiringFilterActive) {
-      p.set("expiresFrom", expiresFrom);
-      p.set("expiresTo", expiresTo);
+      if (expiresFrom) p.set("expiresFrom", expiresFrom);
+      if (expiresTo) p.set("expiresTo", expiresTo);
     }
     if (sort !== "days_remaining_asc") p.set("sort", sort);
     if (targetPage > 1) p.set("page", String(targetPage));
@@ -138,6 +138,7 @@ export default async function ClientsPage({
           expiresTo={expiresTo}
           sort={sort}
           plans={plans}
+          today={today}
         />
       </div>
 
