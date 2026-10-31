@@ -35,3 +35,4 @@ export { AccessResultPanel } from "./components/AccessResultPanel";
 export { BarrierIndicator } from "./components/BarrierIndicator";
 export { AccessEventsList } from "./components/AccessEventsList";
 export { AccessSettingsForm } from "./components/AccessSettingsForm";
+export { AccessBackLink } from "./components/AccessBackLink";

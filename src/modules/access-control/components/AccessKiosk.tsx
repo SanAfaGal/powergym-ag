@@ -15,27 +15,30 @@ import { evaluateFrameQuality, type QualityVerdict } from "../lib/quality";
 import { createStabilityTracker } from "../lib/stability";
 import { cameraErrorMessage, qualityMessage } from "../lib/uiMessages";
 import { drawFaceMesh } from "../lib/vision/drawMesh";
+import type { FrameAnalysis } from "../lib/vision/faceDetector";
 import { useCameraSession } from "../useCameraSession";
 import { AccessResultPanel } from "./AccessResultPanel";
 import { BarrierIndicator } from "./BarrierIndicator";
 
-// Fast enough for a smooth mesh; STABLE_FRAMES keeps the ~1 s of steadiness.
-const DETECT_INTERVAL_MS = 120;
-const STABLE_FRAMES = 8;
+// Fast while someone is in front of the camera (smooth mesh, ~0.6 s of
+// steadiness at STABLE_FRAMES), slow while the frame is empty.
+const ACTIVE_INTERVAL_MS = 120;
+const IDLE_INTERVAL_MS = 400;
+const STABLE_FRAMES = 5;
 const MESH_OK = "rgba(74, 222, 128, 0.55)";
 const MESH_WARN = "rgba(251, 191, 36, 0.55)";
 const CHALLENGE_TIMEOUT_MS = 6000;
-const RESULT_MS = 4000;
+// Long enough to read the richer result card, plus the camera-hide transition.
+const RESULT_MS = 6500;
 // The embedding taken after the challenge must resemble the one taken before
 // it, so the person who passed the challenge is the person being identified
 // (provisional value, to be calibrated with real faces).
 const IDENTITY_CONTINUITY_MIN = 0.5;
 const MAX_FINAL_WAIT_FRAMES = 20;
 
-// Drawn at random per attempt (never the same twice in a row). All of them
-// are independent of the sign of yaw, which is still unverified with a real
-// face; turn_left / turn_right stay out of the pool until it is.
-const CHALLENGES: LivenessChallenge[] = ["blink", "open_mouth", "smile", "turn_any"];
+// A pool that is somehow empty falls back to blink rather than crashing the
+// kiosk (the database already refuses an empty pool while liveness is on).
+const FALLBACK_POOL: LivenessChallenge[] = ["blink"];
 
 const CHALLENGE_PROMPT: Record<LivenessChallenge, string> = {
   blink: "Parpadeá una vez para confirmar",
@@ -65,9 +68,16 @@ function deviceLabel() {
     : "Computador";
 }
 
-export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean }) {
+export function AccessKiosk({
+  livenessRequired,
+  challenges,
+}: {
+  livenessRequired: boolean;
+  // Pool the admin enabled in the access settings; one is drawn per attempt.
+  challenges: LivenessChallenge[];
+}) {
   const session = useCameraSession();
-  const { videoRef, detector, getEmbedder } = session;
+  const { videoRef, detector, getEmbedder, isEmbedderReady } = session;
 
   const [barrier] = useState(() => new SimulatedBarrier());
   const barrierState = useSyncExternalStore(
@@ -85,7 +95,7 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
   const tracker = useRef(createStabilityTracker(STABLE_FRAMES));
   const liveness = useRef<ReturnType<typeof createLivenessSession> | null>(null);
   // Embeddings live only in these refs, for the length of one attempt.
-  const probe = useRef<number[] | null>(null);
+  const probePromise = useRef<Promise<number[]> | null>(null);
   const finalWait = useRef(0);
   const busy = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -122,7 +132,7 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
       busy.current = true;
       setPhase("processing");
 
-      probe.current = null;
+      probePromise.current = null;
       finalWait.current = 0;
 
       const outcome = await attemptAccess({
@@ -153,125 +163,189 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
     [barrier],
   );
 
-  useEffect(() => {
-    if (session.status !== "ready") return;
-
-    const timer = setInterval(async () => {
-      const video = videoRef.current;
-      if (!video || !detector.current) return;
-
-      const analysis = detector.current.detect(video, performance.now());
-      const quality = evaluateFrameQuality(analysis.observation);
-      setVerdict((prev) =>
-        prev && prev.ok === quality.ok && (quality.ok || (!prev.ok && prev.reason === quality.reason))
-          ? prev
-          : quality,
-      );
-
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      if (canvas && ctx) {
-        if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
-        if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
-        drawFaceMesh(
-          ctx,
-          analysis.mesh,
-          detector.current.connections,
-          canvas.width,
-          canvas.height,
-          quality.ok ? MESH_OK : MESH_WARN,
-        );
-      }
-
-      if (!armed.current) {
-        if (!quality.ok && quality.reason === "no_face") armed.current = true;
-        return;
-      }
-
-      if (liveness.current) {
-        const before = probe.current;
-        // A second person stepping in cancels the challenge.
-        if (!before || (!quality.ok && quality.reason === "multiple_faces")) {
-          liveness.current = null;
-          setChallenge(null);
-          if (before) await submit(false, before);
-          return;
-        }
-
-        const state = liveness.current.update(analysis.signal, performance.now());
-        if (state === "pending") return;
-
-        if (state === "failed") {
-          liveness.current = null;
-          setChallenge(null);
-          await submit(false, before);
-          return;
-        }
-
-        // Passed: identify from a FRESH frame taken after the challenge and
-        // require it to match the pre-challenge one, so the live gesture is
-        // tied to the face being identified.
-        if (!quality.ok) {
-          finalWait.current += 1;
-          if (finalWait.current > MAX_FINAL_WAIT_FRAMES) {
-            liveness.current = null;
-            setChallenge(null);
-            await submit(false, before);
-          }
-          return;
-        }
-        busy.current = true;
-        liveness.current = null;
-        setChallenge(null);
-        try {
-          const after = await (await getEmbedder()).embed(video, analysis);
+  // Ends an attempt. The identity embedding (taken in the background while
+  // the person did the gesture) is awaited here; after a passed challenge a
+  // FRESH frame is embedded and must match it, tying the live gesture to the
+  // face being identified.
+  const finish = useCallback(
+    async (
+      passed: boolean,
+      fresh?: { video: HTMLVideoElement; analysis: FrameAnalysis },
+    ) => {
+      busy.current = true;
+      liveness.current = null;
+      setChallenge(null);
+      try {
+        const before = await probePromise.current;
+        if (!before) throw new Error("no identity embedding");
+        if (passed && fresh) {
+          const after = await (await getEmbedder()).embed(fresh.video, fresh.analysis);
           const sameFace = cosineSimilarity(before, after) >= IDENTITY_CONTINUITY_MIN;
           await submit(sameFace, after);
-        } catch {
-          busy.current = false;
-          setErrorMessage("No se pudo procesar el rostro, intentá de nuevo");
+        } else {
+          await submit(false, before);
         }
-        return;
+      } catch {
+        probePromise.current = null;
+        busy.current = false;
+        setPhase("searching");
+        setErrorMessage("No se pudo procesar el rostro, intentá de nuevo");
+      }
+    },
+    [getEmbedder, submit],
+  );
+
+  // One detection step; returns how long to wait before the next one. With
+  // nobody in front of the camera it polls slowly (cheap), and speeds up as
+  // soon as a face appears.
+  const step = useCallback((): number => {
+    const video = videoRef.current;
+    const live = detector.current;
+    if (!video || !live) return IDLE_INTERVAL_MS;
+
+    const analysis = live.detect(video, performance.now());
+    const quality = evaluateFrameQuality(analysis.observation);
+    const next =
+      analysis.observation.faceCount > 0 ? ACTIVE_INTERVAL_MS : IDLE_INTERVAL_MS;
+    setVerdict((prev) =>
+      prev && prev.ok === quality.ok && (quality.ok || (!prev.ok && prev.reason === quality.reason))
+        ? prev
+        : quality,
+    );
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) {
+      if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+      if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+      drawFaceMesh(
+        ctx,
+        analysis.mesh,
+        live.connections,
+        canvas.width,
+        canvas.height,
+        quality.ok ? MESH_OK : MESH_WARN,
+      );
+    }
+
+    if (!armed.current) {
+      if (!quality.ok && quality.reason === "no_face") armed.current = true;
+      return next;
+    }
+
+    if (liveness.current) {
+      // A second person stepping in cancels the challenge.
+      if (!quality.ok && quality.reason === "multiple_faces") {
+        void finish(false);
+        return next;
       }
 
-      if (busy.current) return;
-      if (!tracker.current.push(quality.ok)) return;
+      const state = liveness.current.update(analysis.signal, performance.now());
+      if (state === "pending") return next;
+      if (state === "failed") {
+        void finish(false);
+        return next;
+      }
 
-      busy.current = true;
-      let first: number[];
+      // Passed: wait for a usable frame to take the fresh embedding from.
+      if (!quality.ok) {
+        finalWait.current += 1;
+        if (finalWait.current > MAX_FINAL_WAIT_FRAMES) void finish(false);
+        return next;
+      }
+      void finish(true, { video, analysis });
+      return next;
+    }
+
+    if (busy.current || !tracker.current.push(quality.ok)) return next;
+    // Do not start an attempt that would just sit waiting for the model.
+    if (!isEmbedderReady()) return next;
+
+    if (livenessRequired) {
+      // The challenge shows up right away; the identity embedding is computed
+      // in the background while the person performs the gesture.
+      const embedding = getEmbedder().then((m) => m.embed(video, analysis));
+      embedding.catch(() => {});
+      probePromise.current = embedding;
+      finalWait.current = 0;
+      const chosen = pickChallenge(
+        challenges.length > 0 ? challenges : FALLBACK_POOL,
+        lastChallenge.current,
+      );
+      lastChallenge.current = chosen;
+      liveness.current = createLivenessSession(chosen, CHALLENGE_TIMEOUT_MS);
+      setChallenge(chosen);
+      setPhase("challenge");
+      return next;
+    }
+
+    // No challenge ran, so never claim liveness passed: if the server setting
+    // changed since this page loaded, the RPC denies instead of trusting a
+    // stale client.
+    busy.current = true;
+    void (async () => {
       try {
-        first = await (await getEmbedder()).embed(video, analysis);
+        const embedding = await (await getEmbedder()).embed(video, analysis);
+        await submit(false, embedding);
       } catch {
         busy.current = false;
         setErrorMessage("No se pudo procesar el rostro, intentá de nuevo");
-        return;
       }
+    })();
+    return next;
+  }, [
+    videoRef,
+    detector,
+    getEmbedder,
+    isEmbedderReady,
+    livenessRequired,
+    challenges,
+    submit,
+    finish,
+  ]);
 
-      if (livenessRequired) {
-        probe.current = first;
-        finalWait.current = 0;
-        const chosen = pickChallenge(CHALLENGES, lastChallenge.current);
-        lastChallenge.current = chosen;
-        liveness.current = createLivenessSession(chosen, CHALLENGE_TIMEOUT_MS);
-        setChallenge(chosen);
-        setPhase("challenge");
-        busy.current = false;
-      } else {
-        // No challenge ran, so never claim liveness passed: if the server
-        // setting changed since this page loaded, the RPC denies instead of
-        // trusting a stale client.
-        await submit(false, first);
+  useEffect(() => {
+    if (session.status !== "ready") return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const loop = () => {
+      if (cancelled) return;
+      let delay = IDLE_INTERVAL_MS;
+      try {
+        delay = step();
+      } finally {
+        timer = setTimeout(loop, delay);
       }
-    }, DETECT_INTERVAL_MS);
+    };
+    loop();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [session.status, step]);
 
-    return () => clearInterval(timer);
-  }, [session.status, videoRef, detector, getEmbedder, livenessRequired, submit]);
+  // Starts the camera by itself when the browser already remembers the
+  // permission (no click needed: someone walking up is detected right away).
+  // The very first grant always needs the Activar cámara click.
+  const startSession = session.start;
+  useEffect(() => {
+    let cancelled = false;
+    navigator.permissions
+      ?.query({ name: "camera" as PermissionName })
+      .then((status) => {
+        if (!cancelled && status.state === "granted") void startSession();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [startSession]);
 
   function stop() {
     session.stop();
     if (resultTimer.current) clearTimeout(resultTimer.current);
     liveness.current = null;
-    probe.current = null;
+    probePromise.current = null;
     busy.current = false;
     armed.current = true;
     tracker.current.reset();
@@ -313,13 +387,26 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
         : "ring-4 ring-destructive"
       : "";
 
+  // While a result is on screen the camera tucks away (it keeps running behind
+  // the scenes) and the result takes the whole stage.
+  const showResult = phase === "result" && result !== null;
   const live = session.status === "ready";
   const showGuide = live && phase === "searching";
 
   return (
-    <div className="grid gap-5 lg:h-[calc(100svh-11rem)] lg:min-h-[30rem] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div
+      className={`grid gap-5 transition-[grid-template-columns,column-gap] duration-700 ease-in-out lg:h-[calc(100svh-11rem)] lg:min-h-[30rem] ${
+        showResult
+          ? "lg:grid-cols-[minmax(0,0fr)_minmax(0,1fr)] lg:gap-x-0"
+          : "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      }`}
+    >
       <div
-        className={`relative min-h-[65svh] overflow-hidden rounded-2xl bg-neutral-900 shadow-lg lg:min-h-0 ${ring}`}
+        className={`relative overflow-hidden rounded-2xl bg-neutral-900 shadow-lg transition-all duration-700 ease-in-out lg:min-h-0 ${
+          showResult
+            ? "min-h-0 scale-90 opacity-0 max-lg:h-0"
+            : "min-h-[65svh] scale-100 opacity-100"
+        } ${ring}`}
       >
         <video
           ref={videoRef}
@@ -386,8 +473,8 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
       </div>
 
       <div className="flex min-h-0 flex-col gap-5">
-        <div className="min-h-0 flex-1">
-          <AccessResultPanel result={result} />
+        <div className="min-h-48 flex-1 lg:min-h-0">
+          <AccessResultPanel result={result} expanded={showResult} />
         </div>
         <BarrierIndicator state={barrierState} />
       </div>

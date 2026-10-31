@@ -10,6 +10,7 @@ const KNOWN: Record<string, string> = {
   "staff only": "No tenés permisos para esta acción",
   "invalid embedding": "No se pudo leer el rostro, intentá de nuevo",
   "invalid threshold": "El umbral debe estar entre 0 y 1",
+  "invalid challenges": "Elegí al menos una prueba de vida válida",
 };
 
 export function rpcErrorMessage(message: string, fallback: string): string {

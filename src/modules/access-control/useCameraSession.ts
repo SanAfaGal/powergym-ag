@@ -25,6 +25,7 @@ export function useCameraSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const detector = useRef<FaceDetector | null>(null);
   const embedderPromise = useRef<Promise<Embedder> | null>(null);
+  const embedderLoaded = useRef(false);
   const camera = useRef<{ stop(): void } | null>(null);
   const run = useRef(0);
   const [status, setStatus] = useState<CameraSessionStatus>("off");
@@ -38,6 +39,7 @@ export function useCameraSession() {
     // Also covers a model that is still loading: it closes as soon as it lands.
     void embedderPromise.current?.then((m) => m.close()).catch(() => {});
     embedderPromise.current = null;
+    embedderLoaded.current = false;
   }, []);
 
   const stop = useCallback(() => {
@@ -79,7 +81,12 @@ export function useCameraSession() {
     // The big model starts loading now, in parallel, but does not gate ready.
     const embedding = createEmbedder();
     embedderPromise.current = embedding;
-    embedding.catch(() => fail(id, "model"));
+    embedding.then(
+      () => {
+        if (id === run.current) embedderLoaded.current = true;
+      },
+      () => fail(id, "model"),
+    );
 
     try {
       const d = await createFaceDetector();
@@ -97,6 +104,10 @@ export function useCameraSession() {
     return p ?? Promise.reject(new Error("camera session not started"));
   }, []);
 
+  // True once the model has loaded, so a caller can avoid starting work that
+  // would sit waiting for it (and embed a frame that is no longer current).
+  const isEmbedderReady = useCallback(() => embedderLoaded.current, []);
+
   useEffect(() => {
     return () => {
       run.current += 1;
@@ -104,5 +115,14 @@ export function useCameraSession() {
     };
   }, [release]);
 
-  return { videoRef, detector, getEmbedder, status, error, start, stop };
+  return {
+    videoRef,
+    detector,
+    getEmbedder,
+    isEmbedderReady,
+    status,
+    error,
+    start,
+    stop,
+  };
 }

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { LivenessChallenge } from "./lib/liveness";
 
 export type EnrollmentStatus = {
   hasTemplate: boolean;
@@ -10,6 +11,7 @@ export type EnrollmentStatus = {
 export type AccessSettings = {
   matchThreshold: number;
   livenessRequired: boolean;
+  livenessChallenges: LivenessChallenge[];
 };
 
 export type AccessEvent = {
@@ -56,7 +58,7 @@ export async function getAccessSettings(): Promise<AccessSettings> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("access_settings")
-    .select("match_threshold, liveness_required")
+    .select("match_threshold, liveness_required, liveness_challenges")
     .single();
 
   if (error) throw error;
@@ -64,6 +66,7 @@ export async function getAccessSettings(): Promise<AccessSettings> {
   return {
     matchThreshold: data.match_threshold,
     livenessRequired: data.liveness_required,
+    livenessChallenges: data.liveness_challenges as LivenessChallenge[],
   };
 }
 

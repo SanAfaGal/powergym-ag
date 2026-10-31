@@ -17,11 +17,15 @@ export type LivenessSignal = {
 };
 export type LivenessState = "pending" | "passed" | "failed";
 
+// Neutral in EVERY facial attribute: eyes open, mouth closed, not smiling.
+const isNeutral = (s: LivenessSignal) =>
+  !s.eyesClosed && !s.mouthOpen && !s.smiling;
+
 // Active challenge against photos held up to the camera. It does NOT stop a
 // replayed video or a deepfake -- see the spec's risks section.
 //
 // Every challenge needs a NEUTRAL starting frame (eyes open, mouth closed, not
-// smiling, head frontal) before the gesture counts, so a photo that already
+// smiling; head frontal for turns) before the gesture counts, so a photo that already
 // shows the gesture never passes on its first frame. `turn_any` accepts a turn
 // to either side and does not depend on the sign of yaw; `turn_left` /
 // `turn_right` do (yaw is negative when the person turns to their left) and
@@ -46,11 +50,11 @@ export function createLivenessSession(
         else if (blinkPhase === 1 && signal.eyesClosed) blinkPhase = 2;
         else if (blinkPhase === 2 && !signal.eyesClosed) state = "passed";
       } else if (challenge === "open_mouth") {
-        if (!signal.mouthOpen) sawNeutral = true;
-        else if (sawNeutral) state = "passed";
+        if (isNeutral(signal)) sawNeutral = true;
+        else if (sawNeutral && signal.mouthOpen) state = "passed";
       } else if (challenge === "smile") {
-        if (!signal.smiling) sawNeutral = true;
-        else if (sawNeutral) state = "passed";
+        if (isNeutral(signal)) sawNeutral = true;
+        else if (sawNeutral && signal.smiling) state = "passed";
       } else if (Math.abs(signal.yaw) < FRONTAL_YAW_DEG) {
         sawNeutral = true;
       } else if (sawNeutral) {

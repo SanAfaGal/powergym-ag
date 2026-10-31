@@ -24,6 +24,11 @@ export type AccessAttemptResult = {
     alias: string | null;
     subscriptionStatus: string | null;
     endDate: string | null;
+    planName: string | null;
+    // distinct days this month with a granted entry (Bogota time)
+    visitsThisMonth: number | null;
+    // the previous granted entry, not the attempt that was just recorded
+    lastVisit: string | null;
   } | null;
 };
 
@@ -67,6 +72,9 @@ export async function attemptAccess(
         alias: string | null;
         subscription_status: string | null;
         end_date: string | null;
+        plan_name: string | null;
+        visits_this_month: number | null;
+        last_visit: string | null;
       }
     | undefined;
 
@@ -87,6 +95,9 @@ export async function attemptAccess(
             alias: row.alias,
             subscriptionStatus: row.subscription_status,
             endDate: row.end_date,
+            planName: row.plan_name,
+            visitsThisMonth: row.visits_this_month,
+            lastVisit: row.last_visit,
           }
         : null,
     },
@@ -163,17 +174,31 @@ export async function deleteFaceTemplate(
 
 export async function updateAccessSettings(
   matchThreshold: number,
-  livenessRequired: boolean
+  livenessRequired: boolean,
+  livenessChallenges: string[]
 ): Promise<{ error: string } | { success: true }> {
-  const parsed = settingsSchema.safeParse({ matchThreshold, livenessRequired });
+  const parsed = settingsSchema.safeParse({
+    matchThreshold,
+    livenessRequired,
+    livenessChallenges,
+  });
   if (!parsed.success) {
-    return { error: rpcErrorMessage("invalid threshold", INVALID_DATA_MESSAGE) };
+    const badChallenges = parsed.error.issues.some((i) =>
+      i.path.includes("livenessChallenges")
+    );
+    return {
+      error: rpcErrorMessage(
+        badChallenges ? "invalid challenges" : "invalid threshold",
+        INVALID_DATA_MESSAGE
+      ),
+    };
   }
 
   const supabase = await createSupabaseClient();
   const { error } = await supabase.rpc("update_access_settings", {
     p_match_threshold: parsed.data.matchThreshold,
     p_liveness_required: parsed.data.livenessRequired,
+    p_liveness_challenges: parsed.data.livenessChallenges,
   });
 
   if (error) {
@@ -182,6 +207,7 @@ export async function updateAccessSettings(
     };
   }
 
-  revalidatePath("/access/events");
+  revalidatePath("/access");
+  revalidatePath("/access/settings");
   return { success: true };
 }

@@ -26,8 +26,21 @@ export const enrollSchema = z.object({
 });
 export type EnrollInput = z.infer<typeof enrollSchema>;
 
-export const settingsSchema = z.object({
-  matchThreshold: z.number().min(0).max(1),
-  livenessRequired: z.boolean(),
-});
+export const LIVENESS_CHALLENGES = [
+  "blink",
+  "open_mouth",
+  "smile",
+  "turn_any",
+] as const;
+
+export const settingsSchema = z
+  .object({
+    matchThreshold: z.number().min(0).max(1),
+    livenessRequired: z.boolean(),
+    livenessChallenges: z.array(z.enum(LIVENESS_CHALLENGES)),
+  })
+  .refine((v) => !v.livenessRequired || v.livenessChallenges.length > 0, {
+    message: "Elegí al menos una prueba de vida",
+    path: ["livenessChallenges"],
+  });
 export type SettingsInput = z.infer<typeof settingsSchema>;

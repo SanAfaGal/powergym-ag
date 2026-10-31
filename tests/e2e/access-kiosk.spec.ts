@@ -17,10 +17,15 @@ test("the Acceso link is in the sidebar for employees", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Acceso" })).toBeVisible();
 });
 
-test("the kiosk starts with the camera off and the barrier locked", async ({ page }) => {
+test("with the permission already granted the kiosk starts the camera by itself", async ({
+  page,
+}) => {
+  // First model load (~265 MB over WASM) can take a while on a cold cache.
+  test.setTimeout(150_000);
   await login(page, ADMIN);
   await page.goto("/access");
-  await expect(page.getByText("Cámara desactivada")).toBeVisible();
+  // no click on "Activar cámara": the config grants the camera permission
+  await expect(page.getByText("Cámara activa")).toBeVisible({ timeout: 90_000 });
   await expect(page.getByText("Barrera bloqueada")).toBeVisible();
 });
 
@@ -31,7 +36,6 @@ test("with the fake camera the kiosk reports no face and keeps the barrier locke
   test.setTimeout(150_000);
   await login(page, ADMIN);
   await page.goto("/access");
-  await page.getByRole("button", { name: "Activar cámara" }).click();
   await expect(page.getByText("No se detecta un rostro")).toBeVisible({
     timeout: 90_000,
   });
@@ -50,7 +54,8 @@ test("a denied camera permission shows a clear error and never opens the barrier
   });
   await login(page, ADMIN);
   await page.goto("/access");
-  await page.getByRole("button", { name: "Activar cámara" }).click();
+  // the permission is granted in the config, so the kiosk starts by itself and
+  // hits the stubbed denial without any click
   await expect(page.getByText(/Permiso de cámara denegado/)).toBeVisible();
   await expect(page.getByText("Barrera bloqueada")).toBeVisible();
 });
