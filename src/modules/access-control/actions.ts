@@ -167,7 +167,7 @@ export async function updateAccessSettings(
 ): Promise<{ error: string } | { success: true }> {
   const parsed = settingsSchema.safeParse({ matchThreshold, livenessRequired });
   if (!parsed.success) {
-    return { error: INVALID_DATA_MESSAGE };
+    return { error: rpcErrorMessage("invalid threshold", INVALID_DATA_MESSAGE) };
   }
 
   const supabase = await createSupabaseClient();

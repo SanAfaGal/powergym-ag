@@ -15,7 +15,9 @@ export const attemptSchema = z.object({
 export type AttemptInput = z.infer<typeof attemptSchema>;
 
 export const enrollSchema = z.object({
-  clientId: z.uuid(),
+  // guid, not uuid: z.uuid() enforces RFC version/variant bits, which the
+  // seeded local clients (e.g. 20000000-0000-0000-0000-000000000002) lack.
+  clientId: z.guid(),
   embeddings: z.array(embeddingSchema).length(3),
   quality: z.number().min(0).max(1),
   consentTextVersion: z.string().min(1),
