@@ -48,7 +48,21 @@ documentadas en ese mismo archivo (y en `tests/e2e/auth.spec.ts`).
 
 Copiá `.env.local.example` a `.env.local`. Los valores por defecto ya
 apuntan a la instancia local de Supabase levantada por `pnpm db:start`
-(las claves las imprime ese mismo comando).
+(las claves las imprime ese mismo comando). `NEXT_PUBLIC_MODELS_BASE_URL`
+es opcional: aloja los modelos faciales fuera de la app (ver
+[`docs/access-control/models.md`](./docs/access-control/models.md)).
+
+### CI
+
+`.github/workflows/ci.yml` corre lint, `tsc`, tests unitarios, migraciones +
+pgTAP y el build de producción en cada PR.
+
+### Despliegue: pendientes en el panel de Supabase
+
+Estos ajustes viven en el proyecto remoto, no en `config.toml`: desactivar
+*Allow new users to sign up*, subir la longitud mínima de contraseña a 10 con
+requisitos de mayúscula/minúscula/número, y revisar los límites de rate limit
+y CAPTCHA de Auth.
 
 ## Scripts
 
@@ -58,6 +72,8 @@ apuntan a la instancia local de Supabase levantada por `pnpm db:start`
 | `pnpm build` | Build de producción |
 | `pnpm start` | Sirve el build de producción |
 | `pnpm lint` | ESLint |
+| `pnpm test:unit` | Tests unitarios (`node --test`) de la lógica pura |
+| `pnpm models:fetch` | Descarga los modelos de visión a `public/models/` (corre solo en dev/build) |
 | `pnpm db:start` / `pnpm db:stop` | Levanta/detiene Supabase local (Docker) |
 | `pnpm db:reset` | Re-aplica migraciones + `seed.sql` contra la BD local |
 | `pnpm db:test` | Corre los tests pgTAP en `supabase/tests/database/` |
