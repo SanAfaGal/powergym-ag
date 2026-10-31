@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { bogotaToday } from "@/lib/date/bogota";
+import { bogotaToday } from "../../lib/date/bogota.ts";
 
 const DURATION_UNITS = ["day", "week", "month", "year"] as const;
 
