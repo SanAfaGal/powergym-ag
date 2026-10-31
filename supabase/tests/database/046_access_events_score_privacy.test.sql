@@ -5,7 +5,8 @@
 -- they could submit probe embeddings and read back the similarity to hill-
 -- climb a template, which is exactly what register_access_attempt avoids by
 -- not returning the score. Staff keep reading every other event column;
--- admins get the scores through list_access_event_scores().
+-- admins get the scores of the events they ask for (by id, so filtered and
+-- paged views work) through list_access_event_scores(uuid[]).
 --
 -- Every assertion passes an explicit description (see 003_clients.test.sql).
 begin;
@@ -41,7 +42,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select * from public.list_access_event_scores(10) $$,
+  $$ select * from public.list_access_event_scores(array[]::uuid[]) $$,
   'P0001', 'admin only',
   'an employee cannot call list_access_event_scores'
 );
@@ -50,16 +51,16 @@ reset role;
 select tests.authenticate_as('score-admin@example.test');
 
 select is(
-  (select match_score from public.list_access_event_scores(10)
-   where id = (select id from public.access_events where device_label = 'scoretest')),
+  (select match_score from public.list_access_event_scores(
+     array[(select id from public.access_events where device_label = 'scoretest')])),
   0.42::real,
   'an admin gets the score through the RPC'
 );
 
 select is(
-  (select count(*) from public.list_access_event_scores(0)),
+  (select count(*) from public.list_access_event_scores(array[]::uuid[])),
   0::bigint,
-  'the limit is honored'
+  'only the requested events are returned (none for an empty list)'
 );
 
 select * from finish();

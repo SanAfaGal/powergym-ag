@@ -15,7 +15,9 @@ import {
 import { listBankAccounts } from "@/modules/bank-accounts";
 import { getAuthContext } from "@/lib/auth/session";
 import {
+  getClientAttendance,
   getEnrollmentStatus,
+  ClientAttendanceCard,
   FaceEnrollmentCard,
 } from "@/modules/access-control";
 
@@ -35,6 +37,7 @@ export default async function ClientDetailPage({
     paymentTypes,
     allBankAccounts,
     enrollmentStatus,
+    attendance,
     auth,
   ] = await Promise.all([
     getClient(id).catch(() => null),
@@ -45,6 +48,7 @@ export default async function ClientDetailPage({
     listPaymentTypes(),
     listBankAccounts(),
     getEnrollmentStatus(id),
+    getClientAttendance(id),
     getAuthContext(),
   ]);
 
@@ -62,6 +66,7 @@ export default async function ClientDetailPage({
             documentTypes={documentTypes}
             genderTypes={genderTypes}
           />
+          <ClientAttendanceCard summary={attendance} />
           <FaceEnrollmentCard
             clientId={client.id}
             clientName={`${client.first_name} ${client.last_name}`}
