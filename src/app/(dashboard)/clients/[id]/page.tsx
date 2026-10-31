@@ -56,13 +56,21 @@ export default async function ClientDetailPage({
     <>
       <BackLink href="/clients" label="Clientes" />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-        <ClientInfoSidebar
-          client={client}
-          documentTypes={documentTypes}
-          genderTypes={genderTypes}
-        />
+        <div className="space-y-6">
+          <ClientInfoSidebar
+            client={client}
+            documentTypes={documentTypes}
+            genderTypes={genderTypes}
+          />
+          <FaceEnrollmentCard
+            clientId={client.id}
+            clientName={`${client.first_name} ${client.last_name}`}
+            isAdmin={auth?.profile.role === "admin"}
+            status={enrollmentStatus}
+          />
+        </div>
 
-        <div className="space-y-8">
+        <div>
           <SubscriptionsSection
             clientId={client.id}
             subscriptions={subscriptions}
@@ -70,12 +78,6 @@ export default async function ClientDetailPage({
             paymentTypes={paymentTypes}
             bankAccounts={activeBankAccounts}
             allBankAccounts={allBankAccounts}
-          />
-          <FaceEnrollmentCard
-            clientId={client.id}
-            clientName={`${client.first_name} ${client.last_name}`}
-            isAdmin={auth?.profile.role === "admin"}
-            status={enrollmentStatus}
           />
         </div>
       </div>

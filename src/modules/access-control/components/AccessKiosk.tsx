@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { Button } from "@/components/ui/button";
 import { attemptAccess, type AccessAttemptResult } from "../actions";
 import { SimulatedBarrier } from "../lib/barrier/SimulatedBarrier";
+import { cosineSimilarity } from "../lib/embedding";
 import {
   createLivenessSession,
   type LivenessChallenge,
@@ -19,6 +20,11 @@ const DETECT_INTERVAL_MS = 300;
 const STABLE_FRAMES = 3;
 const CHALLENGE_TIMEOUT_MS = 6000;
 const RESULT_MS = 4000;
+// The embedding taken after the challenge must resemble the one taken before
+// it, so the person who passed the challenge is the person being identified
+// (provisional value, to be calibrated with real faces).
+const IDENTITY_CONTINUITY_MIN = 0.5;
+const MAX_FINAL_WAIT_FRAMES = 20;
 
 // Only blink for now: the sign of yaw against the person's real left/right
 // still has to be confirmed with a real face (docs/access-control/
@@ -41,7 +47,7 @@ function deviceLabel() {
 
 export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean }) {
   const session = useCameraSession();
-  const { videoRef, detector, embedder } = session;
+  const { videoRef, detector, getEmbedder } = session;
 
   const [barrier] = useState(() => new SimulatedBarrier());
   const barrierState = useSyncExternalStore(
@@ -58,8 +64,9 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
 
   const tracker = useRef(createStabilityTracker(STABLE_FRAMES));
   const liveness = useRef<ReturnType<typeof createLivenessSession> | null>(null);
-  // The probe embedding lives only in this ref, for the length of one attempt.
+  // Embeddings live only in these refs, for the length of one attempt.
   const probe = useRef<number[] | null>(null);
+  const finalWait = useRef(0);
   const busy = useRef(false);
   // After a result the kiosk waits for the person to leave the frame, so a
   // visitor standing in front of the camera is not re-evaluated in a loop.
@@ -89,19 +96,18 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
   }, [session.status]);
 
   const submit = useCallback(
-    async (livenessPassed: boolean) => {
-      const embedding = probe.current;
-      if (!embedding) return;
+    async (livenessPassed: boolean, embedding: number[]) => {
       busy.current = true;
       setPhase("processing");
+
+      probe.current = null;
+      finalWait.current = 0;
 
       const outcome = await attemptAccess({
         embedding,
         livenessPassed,
         deviceLabel: deviceLabel(),
       });
-      probe.current = null;
-
       if ("error" in outcome) {
         setErrorMessage(outcome.error);
         setPhase("searching");
@@ -130,7 +136,7 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
 
     const timer = setInterval(async () => {
       const video = videoRef.current;
-      if (!video || !detector.current || !embedder.current) return;
+      if (!video || !detector.current) return;
 
       const analysis = detector.current.detect(video, performance.now());
       const quality = evaluateFrameQuality(analysis.observation);
@@ -142,11 +148,47 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
       }
 
       if (liveness.current) {
-        const state = liveness.current.update(analysis.signal, performance.now());
-        if (state !== "pending") {
+        const before = probe.current;
+        // A second person stepping in cancels the challenge.
+        if (!before || (!quality.ok && quality.reason === "multiple_faces")) {
           liveness.current = null;
           setChallenge(null);
-          await submit(state === "passed");
+          if (before) await submit(false, before);
+          return;
+        }
+
+        const state = liveness.current.update(analysis.signal, performance.now());
+        if (state === "pending") return;
+
+        if (state === "failed") {
+          liveness.current = null;
+          setChallenge(null);
+          await submit(false, before);
+          return;
+        }
+
+        // Passed: identify from a FRESH frame taken after the challenge and
+        // require it to match the pre-challenge one, so the live gesture is
+        // tied to the face being identified.
+        if (!quality.ok) {
+          finalWait.current += 1;
+          if (finalWait.current > MAX_FINAL_WAIT_FRAMES) {
+            liveness.current = null;
+            setChallenge(null);
+            await submit(false, before);
+          }
+          return;
+        }
+        busy.current = true;
+        liveness.current = null;
+        setChallenge(null);
+        try {
+          const after = await (await getEmbedder()).embed(video, analysis);
+          const sameFace = cosineSimilarity(before, after) >= IDENTITY_CONTINUITY_MIN;
+          await submit(sameFace, after);
+        } catch {
+          busy.current = false;
+          setErrorMessage("No se pudo procesar el rostro, intentá de nuevo");
         }
         return;
       }
@@ -155,8 +197,9 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
       if (!tracker.current.push(quality.ok)) return;
 
       busy.current = true;
+      let first: number[];
       try {
-        probe.current = await embedder.current.embed(video, analysis);
+        first = await (await getEmbedder()).embed(video, analysis);
       } catch {
         busy.current = false;
         setErrorMessage("No se pudo procesar el rostro, intentá de nuevo");
@@ -164,18 +207,23 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
       }
 
       if (livenessRequired) {
+        probe.current = first;
+        finalWait.current = 0;
         const chosen = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
         liveness.current = createLivenessSession(chosen, CHALLENGE_TIMEOUT_MS);
         setChallenge(chosen);
         setPhase("challenge");
         busy.current = false;
       } else {
-        await submit(true);
+        // No challenge ran, so never claim liveness passed: if the server
+        // setting changed since this page loaded, the RPC denies instead of
+        // trusting a stale client.
+        await submit(false, first);
       }
     }, DETECT_INTERVAL_MS);
 
     return () => clearInterval(timer);
-  }, [session.status, videoRef, detector, embedder, livenessRequired, submit]);
+  }, [session.status, videoRef, detector, getEmbedder, livenessRequired, submit]);
 
   function stop() {
     session.stop();

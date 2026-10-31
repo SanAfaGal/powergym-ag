@@ -17,10 +17,14 @@ export type CameraSessionStatus =
 // and releases all three on stop() or unmount (a phone kills a tab that
 // holds on to its memory). A run id guards against stop()/unmount landing
 // while start() is still awaiting.
+//
+// "ready" means camera + detector: the preview and mesh work right away. The
+// embedder (the 260 MB model) keeps loading in the background and is awaited
+// via getEmbedder() only when a capture actually needs it.
 export function useCameraSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const detector = useRef<FaceDetector | null>(null);
-  const embedder = useRef<Embedder | null>(null);
+  const embedderPromise = useRef<Promise<Embedder> | null>(null);
   const camera = useRef<{ stop(): void } | null>(null);
   const run = useRef(0);
   const [status, setStatus] = useState<CameraSessionStatus>("off");
@@ -31,8 +35,9 @@ export function useCameraSession() {
     camera.current = null;
     detector.current?.close();
     detector.current = null;
-    void embedder.current?.close();
-    embedder.current = null;
+    // Also covers a model that is still loading: it closes as soon as it lands.
+    void embedderPromise.current?.then((m) => m.close()).catch(() => {});
+    embedderPromise.current = null;
   }, []);
 
   const stop = useCallback(() => {
@@ -41,6 +46,16 @@ export function useCameraSession() {
     setError(null);
     setStatus("off");
   }, [release]);
+
+  const fail = useCallback(
+    (id: number, kind: CameraSessionError) => {
+      if (id !== run.current) return;
+      release();
+      setError(kind);
+      setStatus("error");
+    },
+    [release],
+  );
 
   const start = useCallback(async () => {
     const id = ++run.current;
@@ -61,23 +76,26 @@ export function useCameraSession() {
     }
 
     setStatus("loading");
+    // The big model starts loading now, in parallel, but does not gate ready.
+    const embedding = createEmbedder();
+    embedderPromise.current = embedding;
+    embedding.catch(() => fail(id, "model"));
+
     try {
-      const [d, m] = await Promise.all([createFaceDetector(), createEmbedder()]);
-      if (id !== run.current) {
-        d.close();
-        void m.close();
-        return;
-      }
+      const d = await createFaceDetector();
+      if (id !== run.current) return d.close();
       detector.current = d;
-      embedder.current = m;
       setStatus("ready");
     } catch {
-      if (id !== run.current) return;
-      release();
-      setError("model");
-      setStatus("error");
+      fail(id, "model");
     }
-  }, [release]);
+  }, [fail]);
+
+  // Resolves when the model has loaded; rejects if it failed to load.
+  const getEmbedder = useCallback((): Promise<Embedder> => {
+    const p = embedderPromise.current;
+    return p ?? Promise.reject(new Error("camera session not started"));
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -86,5 +104,5 @@ export function useCameraSession() {
     };
   }, [release]);
 
-  return { videoRef, detector, embedder, status, error, start, stop };
+  return { videoRef, detector, getEmbedder, status, error, start, stop };
 }
