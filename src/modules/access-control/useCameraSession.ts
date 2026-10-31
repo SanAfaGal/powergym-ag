@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraError, startCamera } from "./lib/vision/camera";
-import { createFaceDetector, type FaceDetector } from "./lib/vision/faceDetector";
-import { createEmbedder, type Embedder } from "./lib/vision/embedder";
+import type { FaceDetector } from "./lib/vision/faceDetector";
+import type { Embedder } from "./lib/vision/embedder";
+import { sharedDetector, sharedEmbedder } from "./lib/vision/shared";
 import type { CameraSessionError } from "./lib/uiMessages";
 
 export type CameraSessionStatus =
@@ -13,10 +14,13 @@ export type CameraSessionStatus =
   | "ready"
   | "error";
 
-// Owns the camera stream, the face detector and the embedder for one screen,
-// and releases all three on stop() or unmount (a phone kills a tab that
-// holds on to its memory). A run id guards against stop()/unmount landing
-// while start() is still awaiting.
+// Owns the camera stream for one screen and lends it the shared face detector
+// and embedder. The camera is always released on stop() or unmount (privacy,
+// battery, and a phone kills a tab that holds on to its memory). The detector
+// and the model are NOT closed here: they are shared across screens and
+// disposed only after a long idle time (see lib/vision/shared.ts), so coming
+// back to the kiosk does not reload them. A run id guards against stop() or
+// unmount landing while start() is still awaiting.
 //
 // "ready" means camera + detector: the preview and mesh work right away. The
 // embedder (the 260 MB model) keeps loading in the background and is awaited
@@ -27,6 +31,8 @@ export function useCameraSession() {
   const embedderPromise = useRef<Promise<Embedder> | null>(null);
   const embedderLoaded = useRef(false);
   const camera = useRef<{ stop(): void } | null>(null);
+  // true between acquiring the shared detector/embedder and releasing them
+  const holdingVision = useRef(false);
   const run = useRef(0);
   const [status, setStatus] = useState<CameraSessionStatus>("off");
   const [error, setError] = useState<CameraSessionError | null>(null);
@@ -34,12 +40,14 @@ export function useCameraSession() {
   const release = useCallback(() => {
     camera.current?.stop();
     camera.current = null;
-    detector.current?.close();
     detector.current = null;
-    // Also covers a model that is still loading: it closes as soon as it lands.
-    void embedderPromise.current?.then((m) => m.close()).catch(() => {});
     embedderPromise.current = null;
     embedderLoaded.current = false;
+    if (holdingVision.current) {
+      holdingVision.current = false;
+      sharedDetector.release();
+      sharedEmbedder.release();
+    }
   }, []);
 
   const stop = useCallback(() => {
@@ -77,9 +85,11 @@ export function useCameraSession() {
       return;
     }
 
+    // Already loaded by an earlier visit? Then both resolve at once.
     setStatus("loading");
-    // The big model starts loading now, in parallel, but does not gate ready.
-    const embedding = createEmbedder();
+    holdingVision.current = true;
+    const embedding = sharedEmbedder.acquire();
+    const detecting = sharedDetector.acquire();
     embedderPromise.current = embedding;
     embedding.then(
       () => {
@@ -89,8 +99,9 @@ export function useCameraSession() {
     );
 
     try {
-      const d = await createFaceDetector();
-      if (id !== run.current) return d.close();
+      const d = await detecting;
+      // superseded: stop()/unmount already released what this run acquired
+      if (id !== run.current) return;
       detector.current = d;
       setStatus("ready");
     } catch {

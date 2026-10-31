@@ -6,6 +6,13 @@ import type { LivenessChallenge } from "./liveness.ts";
 // the recognition with the same frame.
 export const RETRY_AFTER_MS = 3000;
 
+// After a granted/denied result the same person must not be processed again,
+// so the kiosk waits for them to leave. It must NEVER wait forever, though: if
+// the next person steps in as the previous one leaves, or someone stands behind,
+// no empty frame ever comes. Hence two ways out besides an empty frame: the
+// camera telling it the person changed (PERSON_CHANGED), and this timeout.
+export const EXIT_TIMEOUT_MS = 15_000;
+
 export type FaceHint = "ok" | "too_far" | "not_frontal" | "too_dark" | "multiple_faces";
 
 // One explicit state at a time: there are no independent booleans that could
@@ -14,8 +21,9 @@ export type KioskState =
   // camera off or not ready yet
   | { name: "IDLE" }
   // camera on, nobody (usable) in front of it. `requireExit`: a result was just
-  // shown, so the person must leave the frame first (no loop on the same
-  // face). `notBefore`: do not react to a face before this time (retry pause).
+  // shown, so the person must leave first (no loop on the same face); then
+  // `notBefore` is the time at which that wait expires by itself. Without
+  // requireExit, `notBefore` is the retry pause: do not react to a face before it.
   | { name: "DETECTING"; requireExit: boolean; notBefore: number }
   | { name: "FACE_DETECTED"; hint: FaceHint }
   // not in the original flow: only when liveness is required
@@ -40,6 +48,8 @@ export type KioskEvent =
   | { type: "STABLE"; challenge: LivenessChallenge | null }
   | { type: "CHALLENGE_DONE"; passed: boolean }
   | { type: "CHALLENGE_ABORTED" }
+  // the camera saw the previous person leave, or a different face appear
+  | { type: "PERSON_CHANGED" }
   | { type: "CAPTURED" }
   | { type: "EMBEDDED" }
   | { type: "RESULT"; result: AccessAttemptResult }
@@ -76,12 +86,19 @@ export function kioskReducer(state: KioskState, event: KioskEvent): KioskState {
       return state;
 
     case "DETECTING": {
+      if (event.type === "PERSON_CHANGED") {
+        return state.requireExit ? detecting(false, 0) : state;
+      }
       if (event.type !== "FRAME") return state;
       const present = event.faceCount > 0;
       if (state.requireExit) {
-        return present ? state : detecting(false, state.notBefore);
+        // an empty frame, or the wait running out, ends it; either way this
+        // frame is then judged like any other
+        if (!present) return detecting(false, 0);
+        if (event.now < state.notBefore) return state;
+      } else if (!present || event.now < state.notBefore) {
+        return state;
       }
-      if (!present || event.now < state.notBefore) return state;
       return {
         name: "FACE_DETECTED",
         hint: event.hint === "no_face" ? "too_far" : event.hint,
@@ -138,7 +155,9 @@ export function kioskReducer(state: KioskState, event: KioskEvent): KioskState {
     case "ACCESS_GRANTED":
     case "ACCESS_DENIED":
       // the person must leave before the next attempt
-      return event.type === "DISPLAY_DONE" ? detecting(true, 0) : state;
+      return event.type === "DISPLAY_DONE"
+        ? detecting(true, event.now + EXIT_TIMEOUT_MS)
+        : state;
 
     case "FACE_NOT_RECOGNIZED":
       return event.type === "DISPLAY_DONE"

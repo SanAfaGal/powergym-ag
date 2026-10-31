@@ -2,7 +2,6 @@ import {
   CalendarCheckIcon,
   CircleCheckBigIcon,
   CircleXIcon,
-  ScanFaceIcon,
   CheckIcon,
   CircleIcon,
   Loader2Icon,
@@ -55,19 +54,8 @@ export function AccessResultPanel({
   const title = big ? "text-5xl" : "text-3xl";
   const sub = big ? "text-3xl" : "text-xl";
 
-  if (view.kind === "idle") {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
-        <ScanFaceIcon className="size-16 text-muted-foreground/50" />
-        <p className="text-xl font-semibold text-muted-foreground">
-          Esperando a la siguiente persona
-        </p>
-        <p className="text-sm text-muted-foreground">
-          El resultado del acceso aparece acá.
-        </p>
-      </div>
-    );
-  }
+  // nothing to show: the camera has the whole stage
+  if (view.kind === "idle") return null;
 
   if (view.kind === "processing") {
     return (
