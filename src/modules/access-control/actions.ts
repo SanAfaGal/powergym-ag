@@ -175,20 +175,25 @@ export async function deleteFaceTemplate(
 export async function updateAccessSettings(
   matchThreshold: number,
   livenessRequired: boolean,
-  livenessChallenges: string[]
+  livenessChallenges: string[],
+  readmitCooldownMinutes: number
 ): Promise<{ error: string } | { success: true }> {
   const parsed = settingsSchema.safeParse({
     matchThreshold,
     livenessRequired,
     livenessChallenges,
+    readmitCooldownMinutes,
   });
   if (!parsed.success) {
-    const badChallenges = parsed.error.issues.some((i) =>
-      i.path.includes("livenessChallenges")
-    );
+    const failedOn = (field: string) =>
+      parsed.error.issues.some((i) => i.path.includes(field));
     return {
       error: rpcErrorMessage(
-        badChallenges ? "invalid challenges" : "invalid threshold",
+        failedOn("livenessChallenges")
+          ? "invalid challenges"
+          : failedOn("readmitCooldownMinutes")
+            ? "invalid cooldown"
+            : "invalid threshold",
         INVALID_DATA_MESSAGE
       ),
     };
@@ -199,6 +204,7 @@ export async function updateAccessSettings(
     p_match_threshold: parsed.data.matchThreshold,
     p_liveness_required: parsed.data.livenessRequired,
     p_liveness_challenges: parsed.data.livenessChallenges,
+    p_readmit_cooldown_minutes: parsed.data.readmitCooldownMinutes,
   });
 
   if (error) {

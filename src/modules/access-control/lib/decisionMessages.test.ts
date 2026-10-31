@@ -12,6 +12,7 @@ const expected: Record<string, string> = {
   subscription_expired: "Membresía vencida",
   subscription_canceled: "Membresía cancelada",
   face_not_recognized: "Rostro no reconocido",
+  recently_admitted: "Ya registraste tu ingreso",
   liveness_failed: "No se pudo verificar que sea una persona real",
 };
 

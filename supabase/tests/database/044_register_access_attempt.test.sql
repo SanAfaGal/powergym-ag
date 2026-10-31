@@ -127,10 +127,12 @@ select is(
   'access_events has no embedding column'
 );
 
+-- Ana was already let in earlier in this test, so the 2-minute cooldown (0050)
+-- denies her now; what matters here is that she is the one identified.
 select is(
-  (select decision || ':' || (client_id = (select id from public.clients where dni_number = 'ATT-A'))::text
+  (select (client_id = (select id from public.clients where dni_number = 'ATT-A'))::text
    from public.register_access_attempt(pg_temp.mix(0.8, 0.6), true, 'recepcion', 'test-agent')),
-  'granted:true',
+  'true',
   'the nearest enrolled face wins (similarity 0.8 to Ana vs 0.6 to Beto)'
 );
 

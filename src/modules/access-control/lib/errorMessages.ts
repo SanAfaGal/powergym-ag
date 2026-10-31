@@ -11,6 +11,7 @@ const KNOWN: Record<string, string> = {
   "invalid embedding": "No se pudo leer el rostro, intentá de nuevo",
   "invalid threshold": "El umbral debe estar entre 0 y 1",
   "invalid challenges": "Elegí al menos una prueba de vida válida",
+  "invalid cooldown": "La espera entre ingresos debe estar entre 0 y 60 minutos",
 };
 
 export function rpcErrorMessage(message: string, fallback: string): string {
