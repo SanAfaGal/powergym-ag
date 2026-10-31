@@ -1,9 +1,8 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getAuthContext } from "@/lib/auth/session";
 import {
+  AccessBackLink,
   AccessEventsList,
-  AccessSettingsForm,
-  getAccessSettings,
   listAccessEvents,
 } from "@/modules/access-control";
 
@@ -14,16 +13,14 @@ export default async function AccessEventsPage() {
   const auth = await getAuthContext();
   const isAdmin = auth?.profile.role === "admin";
 
-  const [events, settings] = await Promise.all([
-    listAccessEvents({
-      limit: isAdmin ? ADMIN_LIMIT : EMPLOYEE_LIMIT,
-      withScores: isAdmin,
-    }),
-    isAdmin ? getAccessSettings() : Promise.resolve(null),
-  ]);
+  const events = await listAccessEvents({
+    limit: isAdmin ? ADMIN_LIMIT : EMPLOYEE_LIMIT,
+    withScores: isAdmin,
+  });
 
   return (
     <div>
+      <AccessBackLink />
       <PageHeader
         title="Intentos de acceso"
         description={
@@ -32,7 +29,6 @@ export default async function AccessEventsPage() {
             : `Los últimos ${EMPLOYEE_LIMIT} intentos.`
         }
       />
-      {settings && <AccessSettingsForm settings={settings} />}
       <AccessEventsList events={events} showScore={isAdmin} />
     </div>
   );

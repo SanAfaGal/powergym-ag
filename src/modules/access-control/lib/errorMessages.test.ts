@@ -11,6 +11,8 @@ const known: Record<string, string> = {
   "staff only": "No tenés permisos para esta acción",
   "invalid embedding": "No se pudo leer el rostro, intentá de nuevo",
   "invalid threshold": "El umbral debe estar entre 0 y 1",
+  "invalid challenges":
+    "Elegí al menos una prueba de vida válida",
 };
 
 for (const [raw, message] of Object.entries(known)) {

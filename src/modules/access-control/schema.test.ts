@@ -52,17 +52,33 @@ test("enrollSchema needs exactly three valid embeddings", () => {
 });
 
 test("settingsSchema keeps the threshold within 0..1", () => {
+  const ok = {
+    matchThreshold: 0.5,
+    livenessRequired: true,
+    livenessChallenges: ["blink"],
+  };
+  assert.equal(settingsSchema.safeParse(ok).success, true);
+  assert.equal(settingsSchema.safeParse({ ...ok, matchThreshold: 1.01 }).success, false);
+  assert.equal(settingsSchema.safeParse({ ...ok, matchThreshold: NaN }).success, false);
+});
+
+test("settingsSchema only accepts known challenges and needs one when liveness is on", () => {
+  const base = { matchThreshold: 0.5, livenessRequired: true };
   assert.equal(
-    settingsSchema.safeParse({ matchThreshold: 0.5, livenessRequired: true }).success,
+    settingsSchema.safeParse({ ...base, livenessChallenges: ["blink", "turn_any"] }).success,
     true,
   );
   assert.equal(
-    settingsSchema.safeParse({ matchThreshold: 1.01, livenessRequired: true }).success,
+    settingsSchema.safeParse({ ...base, livenessChallenges: ["dance"] }).success,
     false,
   );
   assert.equal(
-    settingsSchema.safeParse({ matchThreshold: NaN, livenessRequired: true }).success,
+    settingsSchema.safeParse({ ...base, livenessChallenges: [] }).success,
     false,
+  );
+  assert.equal(
+    settingsSchema.safeParse({ ...base, livenessRequired: false, livenessChallenges: [] }).success,
+    true,
   );
 });
 

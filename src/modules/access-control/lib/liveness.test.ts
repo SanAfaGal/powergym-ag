@@ -110,3 +110,21 @@ test("an unfinished gesture fails at the timeout", () => {
   s.update(open(), 0);
   assert.equal(s.update(open(), 1500), "failed");
 });
+
+test("the neutral frame must be neutral in every attribute, not just the gesture's", () => {
+  // smiling (mouth closed) is not neutral, so opening the mouth right after
+  // must not count
+  const openMouth = createLivenessSession("open_mouth", 5000);
+  assert.equal(openMouth.update(smile, 0), "pending");
+  assert.equal(openMouth.update(mouth, 100), "pending");
+
+  // an open mouth is not neutral for a smile either
+  const smileChallenge = createLivenessSession("smile", 5000);
+  assert.equal(smileChallenge.update(mouth, 0), "pending");
+  assert.equal(smileChallenge.update(smile, 100), "pending");
+
+  // closed eyes are not neutral for a mouth gesture
+  const eyesShut = createLivenessSession("open_mouth", 5000);
+  assert.equal(eyesShut.update(closed(), 0), "pending");
+  assert.equal(eyesShut.update(mouth, 100), "pending");
+});
