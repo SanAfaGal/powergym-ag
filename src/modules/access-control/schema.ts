@@ -23,3 +23,9 @@ export const enrollSchema = z.object({
   modelVersion: z.string().min(1),
 });
 export type EnrollInput = z.infer<typeof enrollSchema>;
+
+export const settingsSchema = z.object({
+  matchThreshold: z.number().min(0).max(1),
+  livenessRequired: z.boolean(),
+});
+export type SettingsInput = z.infer<typeof settingsSchema>;

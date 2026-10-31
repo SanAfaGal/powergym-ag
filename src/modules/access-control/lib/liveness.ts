@@ -1,4 +1,5 @@
 export const TURN_YAW_DEG = 15;
+export const FRONTAL_YAW_DEG = 5;
 
 export type LivenessChallenge = "blink" | "turn_left" | "turn_right";
 export type LivenessSignal = { eyesClosed: boolean; yaw: number };
@@ -15,6 +16,7 @@ export function createLivenessSession(
   let startMs: number | null = null;
   // blink: 0 = waiting for open eyes, 1 = saw them open, 2 = then saw closed
   let blinkPhase = 0;
+  let sawFrontal = false;
 
   return {
     update(signal, nowMs) {
@@ -25,10 +27,15 @@ export function createLivenessSession(
         if (blinkPhase === 0 && !signal.eyesClosed) blinkPhase = 1;
         else if (blinkPhase === 1 && signal.eyesClosed) blinkPhase = 2;
         else if (blinkPhase === 2 && !signal.eyesClosed) state = "passed";
-      } else if (challenge === "turn_left") {
-        if (signal.yaw <= -TURN_YAW_DEG) state = "passed";
-      } else if (signal.yaw >= TURN_YAW_DEG) {
-        state = "passed";
+      } else if (Math.abs(signal.yaw) < FRONTAL_YAW_DEG) {
+        sawFrontal = true;
+      } else if (sawFrontal) {
+        // A turn only counts as a movement away from a frontal frame; a
+        // first frame that is already turned (e.g. a photo held at an
+        // angle) never passes.
+        if (challenge === "turn_left" ? signal.yaw <= -TURN_YAW_DEG : signal.yaw >= TURN_YAW_DEG) {
+          state = "passed";
+        }
       }
 
       if (state === "pending" && nowMs - startMs > timeoutMs) state = "failed";
