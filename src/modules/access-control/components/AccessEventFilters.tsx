@@ -111,7 +111,6 @@ export function AccessEventFilters({
           value={from || undefined}
           onChange={(v) => setParam("from", v)}
           max={to || undefined}
-          placeholder="Fecha"
           className="w-40"
         />
       </div>
@@ -121,7 +120,6 @@ export function AccessEventFilters({
           value={to || undefined}
           onChange={(v) => setParam("to", v)}
           min={from || undefined}
-          placeholder="Fecha"
           className="w-40"
         />
       </div>
