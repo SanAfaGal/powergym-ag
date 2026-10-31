@@ -258,6 +258,7 @@ Table access_events {
   indexes {
     occurred_at [name: 'access_events_occurred_at_idx']
     client_id [name: 'access_events_client_idx']
+    (client_id, occurred_at) [name: 'access_events_client_granted_idx', note: "partial: where decision = 'granted'"]
   }
 
   Note: 'Never stores embeddings or images. Staff can read, only register_access_attempt writes.'
@@ -280,4 +281,22 @@ Table client_photos {
   created_at timestamptz [not null, default: `now()`]
 
   Note: 'Registration photo. Staff can read the path; written only by set_client_photo, removed with the face template by delete_face_template.'
+}
+
+Table audit_log {
+  id bigint [pk, increment]
+  occurred_at timestamptz [not null, default: `now()`]
+  actor_id uuid [note: 'auth.uid() of the caller; null for cron jobs and seeds']
+  table_name text [not null]
+  record_id text
+  action text [not null, note: "check in ('INSERT','UPDATE','DELETE')"]
+  old_data jsonb
+  new_data jsonb
+
+  indexes {
+    occurred_at [name: 'audit_log_occurred_at_idx']
+    (table_name, record_id) [name: 'audit_log_table_record_idx']
+  }
+
+  Note: 'Written only by the audit_row_change() trigger on payments, subscriptions, plan_prices, bank_accounts and profiles. Admins read, nobody writes through the API.'
 }
