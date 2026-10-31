@@ -67,15 +67,18 @@ export async function getAccessSettings(): Promise<AccessSettings> {
   };
 }
 
+// match_score is not readable by staff (migration 0046); admins get it through
+// list_access_event_scores(), so `withScores` must only be true for them.
 export async function listAccessEvents(opts: {
   limit: number;
   clientId?: string;
+  withScores?: boolean;
 }): Promise<AccessEvent[]> {
   const supabase = await createClient();
   let query = supabase
     .from("access_events")
     .select(
-      "id, occurred_at, client_id, decision, reason_code, match_score, device_label, clients(first_name, last_name)"
+      "id, occurred_at, client_id, decision, reason_code, device_label, clients(first_name, last_name)"
     )
     .order("occurred_at", { ascending: false })
     .limit(opts.limit);
@@ -84,6 +87,18 @@ export async function listAccessEvents(opts: {
 
   const { data, error } = await query;
   if (error) throw error;
+
+  const scores = new Map<string, number | null>();
+  if (opts.withScores) {
+    const { data: rows, error: scoreError } = await supabase.rpc(
+      "list_access_event_scores",
+      { p_limit: opts.limit }
+    );
+    if (scoreError) throw scoreError;
+    for (const row of (rows ?? []) as { id: string; match_score: number | null }[]) {
+      scores.set(row.id, row.match_score);
+    }
+  }
 
   return (data ?? []).map((row) => {
     const client = row.clients as unknown as {
@@ -97,7 +112,7 @@ export async function listAccessEvents(opts: {
       clientName: client ? `${client.first_name} ${client.last_name}` : null,
       decision: row.decision as "granted" | "denied",
       reasonCode: row.reason_code,
-      matchScore: row.match_score,
+      matchScore: scores.get(row.id) ?? null,
       deviceLabel: row.device_label,
     };
   });

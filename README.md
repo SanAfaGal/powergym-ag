@@ -17,6 +17,7 @@ convenciones del proyecto.
 - **TypeScript**, **Tailwind CSS v4**, `shadcn`/`@base-ui` primitives
 - **react-hook-form** + **zod** para formularios
 - **pgTAP** para tests de base de datos, **Playwright** para e2e
+- **MediaPipe** + **ONNX Runtime Web** para el prototipo de control de acceso facial (ver [`docs/access-control/README.md`](./docs/access-control/README.md))
 
 ## Requisitos
 

@@ -26,7 +26,7 @@ Next.js App Router + Supabase (Postgres, auth, RLS). Business logic lives in `sr
 
 ### Module pattern (`src/modules/*`)
 
-Modules: `auth`, `bank-accounts`, `clients`, `dashboard`, `plans`, `staff`, `subscriptions`. Each follows the same shape:
+Modules: `access-control`, `auth`, `bank-accounts`, `clients`, `dashboard`, `plans`, `staff`, `subscriptions`. Each follows the same shape:
 
 - `schema.ts` — zod schemas + inferred `*Input` types, shared by client-side `zodResolver` forms and server-side validation
 - `queries.ts` — read-only Supabase calls (server-only, uses `@/lib/supabase/server`)
@@ -34,7 +34,7 @@ Modules: `auth`, `bank-accounts`, `clients`, `dashboard`, `plans`, `staff`, `sub
 - `components/` — module-scoped UI, often three responsive variants (`*Table` / `*List` / `*Cards`)
 - `index.ts` — barrel exporting the above for consumption by `app/` pages
 
-Exceptions: `dashboard` is read-only (no `actions.ts`/`schema.ts`); `auth` has no `queries.ts` (login only).
+Exceptions: `dashboard` is read-only (no `actions.ts`/`schema.ts`); `auth` has no `queries.ts` (login only); `access-control` (facial access prototype, see `docs/access-control/README.md`) keeps browser-only camera/vision code under `lib/vision/` and compares faces inside a Postgres RPC (`register_access_attempt`), never in TS. Its pure helpers are tested with `pnpm test:unit` and import each other with explicit `.ts` extensions so `node --test` can run them.
 
 ### Server actions
 

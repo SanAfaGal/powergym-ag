@@ -114,7 +114,8 @@ select throws_ok(
 );
 
 select is(
-  (select count(*) from public.access_events),
+  (select count(*) from public.access_events
+   where operator_id = tests.get_supabase_uid('att-staff@example.test')),
   6::bigint,
   'every attempt wrote an event (denials included) and the rejected zero vector wrote none'
 );
