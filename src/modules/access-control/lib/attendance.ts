@@ -3,6 +3,8 @@ export type AttendanceSummary = {
   daysLast12Months: number;
   daysThisMonth: number;
   lastVisit: string | null;
+  // every attended Bogota day (yyyy-mm-dd), each once, in no particular order
+  days: string[];
 };
 
 // "Attendance" = a day on which the client was let in at least once, so
@@ -32,5 +34,15 @@ export function summarizeAttendance(
     daysLast12Months: days.size,
     daysThisMonth: thisMonth.size,
     lastVisit: last,
+    days: [...days],
   };
+}
+
+// The `count` calendar days ending at `todayIso` (yyyy-mm-dd), oldest first.
+// UTC date math on date-only strings, so no timezone or DST drift.
+export function lastDays(todayIso: string, count: number): string[] {
+  const end = Date.parse(`${todayIso}T00:00:00Z`);
+  return Array.from({ length: count }, (_, i) =>
+    new Date(end - (count - 1 - i) * 86_400_000).toISOString().slice(0, 10),
+  );
 }

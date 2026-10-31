@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
@@ -18,17 +18,51 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { enrollFace } from "../actions";
+import { enrollFace, uploadClientPhoto } from "../actions";
 import type { EnrollmentStatus } from "../queries";
 import { CONSENT_TEXT_VERSION } from "../lib/consent";
 import { captureQualityScore, evaluateFrameQuality } from "../lib/quality";
 import { createStabilityTracker } from "../lib/stability";
 import { cameraErrorMessage, qualityMessage } from "../lib/uiMessages";
 import { drawFaceMesh } from "../lib/vision/drawMesh";
+import { captureJpeg } from "../lib/vision/capturePhoto";
 import type { FrameAnalysis } from "../lib/vision/faceDetector";
 import { useCameraSession } from "../useCameraSession";
 import { ConsentDialog } from "./ConsentDialog";
 import { DeleteFaceTemplateDialog } from "./DeleteFaceTemplateDialog";
+
+// One row of the enrollment flow: a number (a check once done), what it is and,
+// on the right, the action that moves it forward.
+function Step({
+  n,
+  done,
+  title,
+  hint,
+  action,
+}: {
+  n: number;
+  done: boolean;
+  title: string;
+  hint: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-4 rounded-md border border-border p-4">
+      <span
+        className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+          done ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {done ? <CheckIcon className="size-5" /> : n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{title}</p>
+        <p className="text-sm text-muted-foreground">{hint}</p>
+      </div>
+      {action}
+    </li>
+  );
+}
 
 const CAPTURES_NEEDED = 3;
 const DETECT_INTERVAL_MS = 120;
@@ -67,8 +101,11 @@ export function FaceEnrollmentCard({
   // Embeddings only live here until they are sent; never in state or storage.
   const embeddings = useRef<number[][]>([]);
   const scores = useRef<number[]>([]);
+  // The still of the latest good capture; uploaded once the face is enrolled.
+  const photo = useRef<Blob | null>(null);
 
   function reset() {
+    photo.current = null;
     embeddings.current = [];
     scores.current = [];
     tracker.current.reset();
@@ -94,6 +131,7 @@ export function FaceEnrollmentCard({
       const embedder = await session.getEmbedder();
       embeddings.current.push(await embedder.embed(video, analysis));
       scores.current.push(captureQualityScore(analysis.observation));
+      photo.current = (await captureJpeg(video, analysis.mesh)) ?? photo.current;
       setCount(embeddings.current.length);
       pauseUntil.current = performance.now() + PAUSE_BETWEEN_CAPTURES_MS;
       tracker.current.reset();
@@ -115,7 +153,16 @@ export function FaceEnrollmentCard({
         reset();
         return;
       }
-      toast.success("Rostro registrado");
+
+      // The photo is a plus: the face is already enrolled if it fails.
+      let photoSaved = false;
+      if (photo.current) {
+        const body = new FormData();
+        body.set("photo", photo.current, "foto.jpg");
+        photoSaved = !("error" in (await uploadClientPhoto(clientId, body)));
+      }
+      if (photoSaved) toast.success("Rostro y foto registrados");
+      else toast.warning("Rostro registrado, pero no se pudo guardar la foto");
       close();
     } catch {
       toast.error("No se pudo procesar el rostro, intentá de nuevo");
@@ -125,6 +172,26 @@ export function FaceEnrollmentCard({
       setBusy(false);
     }
   }
+
+  // Opening the capture dialog turns the camera on by itself. The <video> lives
+  // inside the dialog, which mounts a moment after `capturing` flips, so wait
+  // (a few frames at most) for it to exist before starting.
+  useEffect(() => {
+    if (!capturing || session.status !== "off") return;
+    let frame = 0;
+    let tries = 0;
+    const tryStart = () => {
+      if (videoRef.current) {
+        void session.start();
+        return;
+      }
+      if (++tries < 60) frame = requestAnimationFrame(tryStart);
+    };
+    frame = requestAnimationFrame(tryStart);
+    return () => cancelAnimationFrame(frame);
+    // session.start is stable; the session object itself changes every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capturing, session.status]);
 
   // Frame loop: detect, draw the mesh and capture automatically once the
   // face has been well aligned for a moment.
@@ -181,38 +248,58 @@ export function FaceEnrollmentCard({
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Acceso facial
-            {status.hasTemplate && (
-              <Badge className="bg-success/10 text-success">Registrado</Badge>
-            )}
-          </CardTitle>
-          <CardDescription>
-            {status.hasTemplate
-              ? `Rostro registrado${status.enrolledAt ? ` el ${new Date(status.enrolledAt).toLocaleDateString("es-CO")}` : ""}.`
-              : status.hasConsent
-                ? "Consentimiento registrado. Falta registrar el rostro."
-                : "Sin consentimiento"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {!status.hasConsent && (
-              <ConsentDialog clientId={clientId} clientName={clientName} />
-            )}
-            <Button
-              size="sm"
-              variant={status.hasConsent ? "default" : "outline"}
-              disabled={!status.hasConsent}
-              onClick={() => setCapturing(true)}
-            >
-              {status.hasTemplate ? "Volver a registrar" : "Registrar rostro"}
-            </Button>
-            {isAdmin && (status.hasConsent || status.hasTemplate) && (
-              <DeleteFaceTemplateDialog clientId={clientId} clientName={clientName} />
-            )}
+        <CardContent className="flex flex-col gap-6">
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              Acceso facial
+              {status.hasTemplate && (
+                <Badge className="bg-success/10 text-success">Registrado</Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              {status.hasTemplate
+                ? `Rostro registrado${status.enrolledAt ? ` el ${new Date(status.enrolledAt).toLocaleDateString("es-CO")}` : ""}.`
+                : status.hasConsent
+                  ? "Consentimiento registrado. Falta registrar el rostro."
+                  : "Sin consentimiento"}
+            </CardDescription>
           </div>
+
+          <ol className="flex flex-col gap-3">
+            <Step
+              n={1}
+              done={status.hasConsent}
+              title="Consentimiento"
+              hint="La persona autoriza el uso de su rostro."
+              action={
+                !status.hasConsent && (
+                  <ConsentDialog clientId={clientId} clientName={clientName} />
+                )
+              }
+            />
+            <Step
+              n={2}
+              done={status.hasTemplate}
+              title="Rostro"
+              hint="Se captura frente a la cámara, de forma automática. Se guarda también una foto, que solo ve el personal."
+              action={
+                <Button
+                  size="sm"
+                  variant={status.hasConsent && !status.hasTemplate ? "default" : "outline"}
+                  disabled={!status.hasConsent}
+                  onClick={() => setCapturing(true)}
+                >
+                  {status.hasTemplate ? "Volver a registrar" : "Registrar rostro"}
+                </Button>
+              }
+            />
+          </ol>
+
+          {isAdmin && (status.hasConsent || status.hasTemplate) && (
+            <div className="border-t border-border pt-4">
+              <DeleteFaceTemplateDialog clientId={clientId} clientName={clientName} />
+            </div>
+          )}
         </CardContent>
       </Card>
 

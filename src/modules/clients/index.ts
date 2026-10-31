@@ -24,4 +24,5 @@ export { StatusBadge } from "@/components/shared/StatusBadge";
 export { ContactLinks } from "./components/ContactLinks";
 export { EditClientDialog } from "./components/EditClientDialog";
 export { DeactivateClientDialog } from "./components/DeactivateClientDialog";
-export { ClientInfoSidebar } from "./components/ClientInfoSidebar";
+export { ClientHeader, type HeaderChip } from "./components/ClientHeader";
+export { ClientDetails } from "./components/ClientDetails";
