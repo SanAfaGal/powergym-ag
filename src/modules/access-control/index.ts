@@ -33,3 +33,5 @@ export { FaceEnrollmentCard } from "./components/FaceEnrollmentCard";
 export { AccessKiosk } from "./components/AccessKiosk";
 export { AccessResultPanel } from "./components/AccessResultPanel";
 export { BarrierIndicator } from "./components/BarrierIndicator";
+export { AccessEventsList } from "./components/AccessEventsList";
+export { AccessSettingsForm } from "./components/AccessSettingsForm";

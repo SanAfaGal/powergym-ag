@@ -65,3 +65,15 @@ test("settingsSchema keeps the threshold within 0..1", () => {
     false,
   );
 });
+
+test("enrollSchema accepts the non-RFC uuids used by the seeded clients", () => {
+  const ok = {
+    clientId: "20000000-0000-0000-0000-000000000002",
+    embeddings: [axis(0), axis(1), axis(2)],
+    quality: 0.9,
+    consentTextVersion: "2026-10-v1",
+    modelId: "auraface",
+    modelVersion: "v1",
+  };
+  assert.equal(enrollSchema.safeParse(ok).success, true);
+});
