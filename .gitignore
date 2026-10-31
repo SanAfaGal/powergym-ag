@@ -48,3 +48,8 @@ next-env.d.ts
 # diffs, and other workflow scratch output, never project deliverables
 /.claude/
 /docs/
+
+# access-control assets (large binaries, see docs/access-control/models.md)
+/public/models/
+/public/ort/
+/public/mediapipe/
