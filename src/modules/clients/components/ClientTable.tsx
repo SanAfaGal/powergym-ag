@@ -16,6 +16,7 @@ import { daysRemainingClass } from "../lib/daysRemainingClass";
 import { GenderIcon } from "../lib/genderIcon";
 import { ViewClientIcon } from "./ViewClientIcon";
 import { ReminderActions } from "./ReminderActions";
+import { expiredAgo } from "../lib/expiredAgo";
 
 export function ClientTable({
   clients,
@@ -105,6 +106,20 @@ export function ClientTable({
                       ).toLocaleDateString("es-CO")}
                     </span>
                   </div>
+                ) : client.days_remaining != null &&
+                  client.days_remaining < 0 &&
+                  client.end_date ? (
+                  <div className="flex flex-col gap-0.5 py-0.5">
+                    <span className="tabular-nums font-medium text-destructive">
+                      {expiredAgo(client.days_remaining)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      venció{" "}
+                      {new Date(
+                        `${client.end_date}T00:00:00`
+                      ).toLocaleDateString("es-CO")}
+                    </span>
+                  </div>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
@@ -121,7 +136,9 @@ export function ClientTable({
               </TableCell>
               <TableCell className="sticky right-0 bg-background text-right transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--primary)_5%)]">
                 <div className="flex items-center justify-end gap-1.5">
-                  {client.subscription_status === "active" && client.end_date && (
+                  {(client.subscription_status === "active" ||
+                    client.subscription_status === "expired") &&
+                    client.end_date && (
                     <ReminderActions
                       firstName={client.first_name}
                       endDate={client.end_date}

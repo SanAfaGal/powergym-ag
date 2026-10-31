@@ -40,6 +40,8 @@ export type SortOption = "days_remaining_asc" | "days_remaining_desc";
 
 const PAGE_SIZE = 20;
 
+const EXPIRY_STATUSES: SubscriptionStatus[] = ["active", "expired"];
+
 // sort_days_remaining (migration 0040) mirrors days_remaining but nulls out
 // negatives -- an expired subscription's days_remaining is a large negative
 // number, which would otherwise sort to the very top of "soonest first"
@@ -112,22 +114,31 @@ export async function listClients({
 
   query = applyClientFilters(query, { q, status, planId, hasBalance });
 
-  if (expiresFrom && expiresTo) {
-    // "Vencimientos" only ever means active subscriptions ending in this
-    // window -- overrides subscriptionStatus rather than combining with it,
-    // since the two are mutually exclusive ways of slicing the same column.
+  if (expiresFrom || expiresTo) {
+    // "Vencimientos" means subscriptions ending in this window that are
+    // either still running or already expired (so staff can find who lapsed
+    // yesterday and was never notified). Clients who renewed are not listed:
+    // the view shows one subscription per client, active first. Overrides
+    // subscriptionStatus rather than combining with it.
     query = query
-      .eq("subscription_status", "active")
-      .gte("end_date", expiresFrom)
-      .lte("end_date", expiresTo);
+      .in("subscription_status", EXPIRY_STATUSES);
+    if (expiresFrom) query = query.gte("end_date", expiresFrom);
+    if (expiresTo) query = query.lte("end_date", expiresTo);
   } else if (subscriptionStatus === "none") {
     query = query.is("subscription_id", null);
   } else if (subscriptionStatus && subscriptionStatus !== "all") {
     query = query.eq("subscription_status", subscriptionStatus);
   }
 
-  const { column, ascending } = SORT_CONFIG[sort];
-  query = query.order(column, { ascending, nullsFirst: false });
+  // Expired subscriptions have no sort_days_remaining (negatives are nulled),
+  // so within an expiry view or the "Vencida" filter order by end date,
+  // most recently lapsed first -- the ones staff most likely forgot to notify.
+  if (expiresFrom || expiresTo || subscriptionStatus === "expired") {
+    query = query.order("end_date", { ascending: false });
+  } else {
+    const { column, ascending } = SORT_CONFIG[sort];
+    query = query.order(column, { ascending, nullsFirst: false });
+  }
 
   const from = (page - 1) * PAGE_SIZE;
   const { data, count, error } = await query.range(from, from + PAGE_SIZE - 1);
@@ -157,17 +168,17 @@ export type ExpiringClient = {
 // listClients, no range()/limit, so the copied text always matches what's
 // visible in the filtered table.
 export async function listExpiringClients(
-  expiresFrom: string,
-  expiresTo: string,
+  expiresFrom: string | undefined,
+  expiresTo: string | undefined,
   filters: ClientFilterParams = {}
 ): Promise<ExpiringClient[]> {
   const supabase = await createClient();
   let query = supabase
     .from("client_subscription_overview")
     .select("id, first_name, last_name, end_date, plan_name, phone")
-    .eq("subscription_status", "active")
-    .gte("end_date", expiresFrom)
-    .lte("end_date", expiresTo);
+    .in("subscription_status", EXPIRY_STATUSES);
+  if (expiresFrom) query = query.gte("end_date", expiresFrom);
+  if (expiresTo) query = query.lte("end_date", expiresTo);
 
   query = applyClientFilters(query, filters);
 

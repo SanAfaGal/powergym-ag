@@ -10,6 +10,7 @@ import {
   WalletIcon,
   XIcon,
 } from "lucide-react";
+import { addDays, format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/shared/DatePicker";
@@ -63,6 +64,16 @@ const FILTER_KEYS = [
   "expiresTo",
 ] as const;
 
+// Offsets in days from today. Past ranges matter as much as future ones:
+// they find clients who already lapsed and were never reminded.
+const EXPIRY_PRESETS = [
+  { label: "Ayer", from: -1, to: -1 },
+  { label: "Últimos 7 días", from: -7, to: -1 },
+  { label: "Ya vencidos", from: null, to: -1 },
+  { label: "Hoy", from: 0, to: 0 },
+  { label: "Próximos 7 días", from: 0, to: 7 },
+] as const;
+
 const SUBSCRIPTION_STATUS_ITEMS = Object.fromEntries(
   SUBSCRIPTION_STATUS_OPTIONS.map((opt) => [opt.value, opt.label])
 );
@@ -77,6 +88,7 @@ export function ClientFilters({
   expiresTo,
   sort,
   plans,
+  today,
 }: {
   defaultQuery: string;
   status: string;
@@ -87,8 +99,10 @@ export function ClientFilters({
   expiresTo: string;
   sort: string;
   plans: { id: string; name: string }[];
+  // yyyy-mm-dd in Bogota time, from the server (the browser clock may differ)
+  today: string;
 }) {
-  const isExpiringFilterActive = Boolean(expiresFrom && expiresTo);
+  const isExpiringFilterActive = Boolean(expiresFrom || expiresTo);
   const activeCount = [
     status !== "active",
     subscriptionStatus !== "all",
@@ -154,6 +168,23 @@ export function ClientFilters({
     const params = new URLSearchParams(searchParams);
     if (value) params.set(key, value);
     else params.delete(key);
+    params.delete("page");
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`);
+    });
+  }
+
+  // One-click ranges relative to today. Replaces both dates in a single
+  // navigation (two setDateParam calls would race on stale searchParams).
+  function setExpiryRange(fromOffset: number | null, toOffset: number | null) {
+    const base = new Date(`${today}T00:00:00`);
+    const params = new URLSearchParams(searchParams);
+    const apply = (key: string, offset: number | null) => {
+      if (offset === null) params.delete(key);
+      else params.set(key, format(addDays(base, offset), "yyyy-MM-dd"));
+    };
+    apply("expiresFrom", fromOffset);
+    apply("expiresTo", toOffset);
     params.delete("page");
     startTransition(() => {
       router.replace(`${pathname}?${params.toString()}`);
@@ -239,6 +270,19 @@ export function ClientFilters({
               onChange={(value) => setDateParam("expiresTo", value)}
               className="w-full"
             />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {EXPIRY_PRESETS.map((preset) => (
+              <Button
+                key={preset.label}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setExpiryRange(preset.from, preset.to)}
+              >
+                {preset.label}
+              </Button>
+            ))}
           </div>
         </div>
         <div className="flex w-48 flex-col gap-1.5">

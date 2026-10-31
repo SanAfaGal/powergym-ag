@@ -8,6 +8,7 @@ import { ContactLinks } from "./ContactLinks";
 import { daysRemainingClass } from "../lib/daysRemainingClass";
 import { GenderIcon } from "../lib/genderIcon";
 import { ReminderActions } from "./ReminderActions";
+import { expiredAgo } from "../lib/expiredAgo";
 
 export function ClientCards({
   clients,
@@ -77,6 +78,21 @@ export function ClientCards({
                       </span>
                     </span>
                   )}
+                {client.days_remaining != null &&
+                  client.days_remaining < 0 &&
+                  client.end_date && (
+                    <span className="flex flex-col items-end gap-0.5">
+                      <span className="tabular-nums font-medium text-destructive">
+                        {expiredAgo(client.days_remaining)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        venció{" "}
+                        {new Date(
+                          `${client.end_date}T00:00:00`
+                        ).toLocaleDateString("es-CO")}
+                      </span>
+                    </span>
+                  )}
               </div>
             ) : (
               <span>Sin suscripción</span>
@@ -87,7 +103,9 @@ export function ClientCards({
               </span>
             )}
           </div>
-          {client.subscription_status === "active" && client.end_date && (
+          {(client.subscription_status === "active" ||
+            client.subscription_status === "expired") &&
+            client.end_date && (
             <div className="flex items-center justify-end gap-1.5 pt-1">
               <ReminderActions
                 firstName={client.first_name}
