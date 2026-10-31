@@ -5,6 +5,7 @@ import {
 } from "./align";
 import type { FrameAnalysis } from "./faceDetector";
 import { imageDataToTensor } from "./preprocess";
+import { EMBEDDER_MODEL_URL } from "./modelUrls";
 
 const SIZE = 112;
 
@@ -119,7 +120,7 @@ async function createSession(modelUrl: string) {
 }
 
 export async function createEmbedder(
-  modelUrl = "/models/glintr100.onnx",
+  modelUrl = EMBEDDER_MODEL_URL,
 ): Promise<Embedder> {
   const { ort, session, backend } = await createSession(modelUrl);
   const inputName = session.inputNames[0];
