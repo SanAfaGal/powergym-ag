@@ -1,12 +1,6 @@
 import { MessageCircleIcon, PhoneIcon } from "lucide-react";
 
-// Stored numbers are the bare local digits (the form shows a "+57" prefix
-// as a hint, not part of the value) -- normalize to a full E.164-ish
-// digit string for tel:/wa.me links without assuming a fixed length.
-export function toWhatsAppDigits(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.startsWith("57") ? digits : `57${digits}`;
-}
+import { toWhatsAppDigits } from "../lib/whatsapp";
 
 export function ContactLinks({ phone }: { phone: string }) {
   return (

@@ -14,7 +14,7 @@ pnpm db:stop           # stop local Supabase
 pnpm db:reset          # re-run migrations + seed.sql against local DB
 pnpm db:test           # run pgTAP tests in supabase/tests/database via `supabase test db`
 
-pnpm test:unit         # node --test on access-control + src/lib pure helpers
+pnpm test:unit         # node --test on src/modules and src/lib (schemas + pure helpers; use .ts import extensions, no @/ alias)
 pnpm models:fetch      # download vision models into public/models (auto in predev/prebuild)
 pnpm test:e2e          # playwright test (auto-starts `pnpm dev` if not already running)
 ```

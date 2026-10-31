@@ -1,6 +1,6 @@
 import type { ExpiringClient } from "../queries";
-import { formatRenewalReminderMessage } from "./formatRenewalReminderMessage";
-import { toWhatsAppDigits } from "../components/ContactLinks";
+import { formatRenewalReminderMessage } from "./formatRenewalReminderMessage.ts";
+import { toWhatsAppDigits } from "./whatsapp.ts";
 
 // RFC4180-style quoting: without it, a multi-line message pasted into Excel
 // spills across extra rows instead of staying in one "Mensaje" cell.

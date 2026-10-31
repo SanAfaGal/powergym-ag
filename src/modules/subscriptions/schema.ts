@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { bogotaToday } from "@/lib/date/bogota";
+import { bogotaToday } from "../../lib/date/bogota.ts";
 
 const planId = z.string().min(1, "Seleccioná un plan");
 const startDate = z.string().min(1, "Seleccioná una fecha de inicio");

@@ -4,7 +4,7 @@ import { CopyIcon, MessageCircleIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatRenewalReminderMessage } from "../lib/formatRenewalReminderMessage";
-import { toWhatsAppDigits } from "./ContactLinks";
+import { toWhatsAppDigits } from "../lib/whatsapp";
 
 // Callers gate rendering on the same condition the "días restantes" column
 // already uses (subscription_status === "active" && end_date present) --
