@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored WASM runtimes copied by scripts/access-assets/copy-wasm.mjs.
+    "public/ort/**",
+    "public/mediapipe/**",
   ]),
 ]);
 
