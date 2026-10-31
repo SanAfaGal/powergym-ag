@@ -100,10 +100,24 @@ test("a camera error stays on the camera overlay, not the result card", () => {
     { name: "IDLE" },
     { name: "DETECTING", requireExit: false, notBefore: 0 },
     { name: "FACE_DETECTED", hint: "ok" },
-    { name: "VALIDATING_MEMBERSHIP" },
   ] as KioskState[]) {
     assert.deepEqual(resultViewFor(s), { kind: "idle" });
   }
+});
+
+test("while an attempt runs the camera gives way to the real stages", () => {
+  assert.deepEqual(resultViewFor({ name: "CAPTURING", livenessPassed: true }), {
+    kind: "processing",
+    stages: ["active", "pending", "pending"],
+  });
+  assert.deepEqual(resultViewFor({ name: "RECOGNIZING", livenessPassed: true }), {
+    kind: "processing",
+    stages: ["done", "active", "pending"],
+  });
+  assert.deepEqual(resultViewFor({ name: "VALIDATING_MEMBERSHIP" }), {
+    kind: "processing",
+    stages: ["done", "done", "active"],
+  });
 });
 
 test("only the first name is shown on the public screen", () => {

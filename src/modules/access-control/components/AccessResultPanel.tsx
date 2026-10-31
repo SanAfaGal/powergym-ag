@@ -3,12 +3,35 @@ import {
   CircleCheckBigIcon,
   CircleXIcon,
   ScanFaceIcon,
+  CheckIcon,
+  CircleIcon,
+  Loader2Icon,
   TriangleAlertIcon,
   UserRoundXIcon,
 } from "lucide-react";
 import { bogotaToday } from "@/lib/date/bogota";
 import { describeAccessUntil } from "../lib/accessUntil";
-import { firstName, type ResultView } from "../lib/kioskView";
+import { firstName, type ResultView, type StageStatus } from "../lib/kioskView";
+
+const STAGES = [
+  "Captura realizada",
+  "Generando tu huella facial en este dispositivo",
+  "Verificando identidad y membresía",
+] as const;
+
+function StageIcon({ status }: { status: StageStatus }) {
+  if (status === "done") {
+    return (
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground duration-300 animate-in zoom-in-50">
+        <CheckIcon className="size-6" />
+      </span>
+    );
+  }
+  if (status === "active") {
+    return <Loader2Icon className="size-10 shrink-0 animate-spin text-primary" />;
+  }
+  return <CircleIcon className="size-10 shrink-0 text-muted-foreground/30" />;
+}
 
 const UNTIL_TONE = {
   ok: "text-foreground",
@@ -42,6 +65,39 @@ export function AccessResultPanel({
         <p className="text-sm text-muted-foreground">
           El resultado del acceso aparece acá.
         </p>
+      </div>
+    );
+  }
+
+  if (view.kind === "processing") {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex h-full min-h-0 flex-col items-center justify-center gap-8 overflow-y-auto rounded-2xl border border-border bg-card p-6 text-center duration-500 animate-in fade-in zoom-in-95"
+      >
+        <p className={`font-heading font-bold tracking-tight ${title}`}>
+          Verificando tu acceso
+        </p>
+        <ol className="flex w-full max-w-xl flex-col gap-5 text-left">
+          {STAGES.map((label, i) => {
+            const status = view.stages[i] ?? "pending";
+            return (
+              // keyed by status: a stage that changes state re-mounts and
+              // animates in (the check pops), so progress is visible
+              <li
+                key={`${label}-${status}`}
+                style={{ animationDelay: `${i * 120}ms` }}
+                className={`flex items-center gap-4 duration-500 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards ${
+                  big ? "text-2xl" : "text-lg"
+                } ${status === "pending" ? "text-muted-foreground" : "font-medium"}`}
+              >
+                <StageIcon status={status} />
+                {label}
+              </li>
+            );
+          })}
+        </ol>
       </div>
     );
   }
