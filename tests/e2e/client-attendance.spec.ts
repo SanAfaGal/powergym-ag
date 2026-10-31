@@ -17,7 +17,7 @@ test("the client page shows an attendance summary", async ({ page }) => {
   await page.waitForURL(/[?&]q=Maria(\+|%20)Gomez/);
   await page.getByRole("link", { name: "Maria Gomez" }).click();
 
-  await expect(page.getByText("Asistencia", { exact: true })).toBeVisible();
-  await expect(page.getByText(/días? este mes/)).toBeVisible();
-  await expect(page.getByText(/días? en 12 meses/)).toBeVisible();
+  await page.getByRole("tab", { name: "Asistencia" }).click();
+  // the seeded client has never come in, so the tab shows its empty state
+  await expect(page.getByText("Todavía no ha ingresado")).toBeVisible();
 });

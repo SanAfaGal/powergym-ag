@@ -21,6 +21,7 @@ async function openMaria(page: Page) {
   await page.waitForURL(/[?&]q=Maria(\+|%20)Gomez/);
   await page.getByRole("link", { name: "Maria Gomez" }).click();
   await expect(page).toHaveURL(/\/clients\/[0-9a-f-]+$/);
+  await page.getByRole("tab", { name: "Rostro" }).click();
   await expect(page.getByText("Acceso facial")).toBeVisible();
 }
 
@@ -69,10 +70,8 @@ test("recording consent enables the camera step, which reports no face on the fa
   await save.click();
 
   await expect(page.getByText("Consentimiento registrado")).toBeVisible();
+  // the camera turns on by itself when the capture dialog opens
   await page.getByRole("button", { name: "Registrar rostro" }).click();
-  await expect(page.getByText("Cámara desactivada")).toBeVisible();
-
-  await page.getByRole("button", { name: "Activar cámara" }).click();
   // Models are ~265 MB and load over WASM: allow for a slow first load.
   await expect(page.getByText("No se detecta un rostro")).toBeVisible({
     timeout: 90_000,

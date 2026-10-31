@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { summarizeAttendance } from "./attendance.ts";
+import { lastDays, summarizeAttendance } from "./attendance.ts";
 
 // Bogota is UTC-5 all year, so 23:30 Bogota is 04:30Z the next day.
 const TODAY = "2026-10-31";
@@ -10,6 +10,7 @@ test("no entries means no attendance", () => {
     daysLast12Months: 0,
     daysThisMonth: 0,
     lastVisit: null,
+    days: [],
   });
 });
 
@@ -46,4 +47,25 @@ test("the last visit is the most recent entry, whatever the input order", () => 
     TODAY,
   );
   assert.equal(r.lastVisit, "2026-10-28T15:00:00Z");
+});
+
+test("days lists each attended Bogota day once, as yyyy-mm-dd", () => {
+  const r = summarizeAttendance(
+    ["2026-10-20T13:00:00Z", "2026-10-20T22:00:00Z", "2026-10-21T03:00:00Z", "2026-10-05T15:00:00Z"],
+    TODAY,
+  );
+  assert.deepEqual([...r.days].sort(), ["2026-10-05", "2026-10-20"]);
+});
+
+test("lastDays returns the n days ending today, oldest first", () => {
+  assert.deepEqual(lastDays("2026-10-31", 3), ["2026-10-29", "2026-10-30", "2026-10-31"]);
+});
+
+test("lastDays crosses month and year boundaries", () => {
+  assert.deepEqual(lastDays("2027-01-02", 4), [
+    "2026-12-30",
+    "2026-12-31",
+    "2027-01-01",
+    "2027-01-02",
+  ]);
 });
