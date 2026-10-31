@@ -1,5 +1,5 @@
 // PowerGym AG — database schema (DBML)
-// Generated from supabase/migrations/ through 00000000000028_plan_create_valid_from.sql.
+// Generated from supabase/migrations/ through 00000000000041_access_control_schema.sql.
 // Not auto-synced: update by hand whenever a migration adds/drops/renames a
 // table or column (function-only migrations, RLS policies, and RPC
 // signature changes don't require an update here).
@@ -208,4 +208,64 @@ Table bank_accounts {
   }
 
   Note: 'Operational data (like clients), not seeded in migrations — added per-environment.'
+}
+
+// --- Facial access control (migration 0041). Biometric data is sensitive:
+// biometric_consents and face_templates have RLS enabled with no policies and
+// no grants to `authenticated` -- reachable only through SECURITY DEFINER RPCs. ---
+
+Table biometric_consents {
+  id uuid [pk, default: `gen_random_uuid()`]
+  client_id uuid [not null, ref: > clients.id]
+  purpose text [not null, default: 'access_control']
+  consent_text_version text [not null]
+  granted_at timestamptz [not null, default: `now()`]
+  granted_by uuid [ref: > profiles.id]
+  revoked_at timestamptz
+  revoked_by uuid [ref: > profiles.id]
+
+  indexes {
+    client_id [unique, name: 'biometric_consents_one_live_per_client', note: 'partial: where revoked_at is null']
+  }
+}
+
+Table face_templates {
+  client_id uuid [pk, ref: - clients.id, note: 'one template per client']
+  embedding "extensions.vector(512)" [not null, note: 'L2-normalized; compared by cosine distance. No vector index (exact scan at gym scale)']
+  model_id text [not null]
+  model_version text [not null]
+  quality_score real
+  consent_id uuid [not null, ref: > biometric_consents.id]
+  created_by uuid [ref: > profiles.id]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table access_events {
+  id uuid [pk, default: `gen_random_uuid()`]
+  occurred_at timestamptz [not null, default: `now()`]
+  client_id uuid [ref: > clients.id, note: 'null when the face was not recognized; on delete set null']
+  decision text [not null, note: "check in ('granted','denied')"]
+  reason_code text [not null]
+  method text [not null, default: 'face_webcam']
+  match_score real
+  threshold_used real
+  liveness_passed boolean
+  device_label text
+  user_agent text
+  operator_id uuid [ref: > profiles.id]
+  model_version text
+
+  indexes {
+    occurred_at [name: 'access_events_occurred_at_idx']
+    client_id [name: 'access_events_client_idx']
+  }
+
+  Note: 'Never stores embeddings or images. Staff can read, only register_access_attempt writes.'
+}
+
+Table access_settings {
+  id boolean [pk, default: true, note: 'check (id): single-row table']
+  match_threshold real [not null, default: 0.5, note: 'check between 0 and 1; cosine similarity']
+  liveness_required boolean [not null, default: true]
+  updated_at timestamptz [not null, default: `now()`]
 }
