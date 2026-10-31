@@ -14,6 +14,8 @@ pnpm db:stop           # stop local Supabase
 pnpm db:reset          # re-run migrations + seed.sql against local DB
 pnpm db:test           # run pgTAP tests in supabase/tests/database via `supabase test db`
 
+pnpm test:unit         # node --test on access-control + src/lib pure helpers
+pnpm models:fetch      # download vision models into public/models (auto in predev/prebuild)
 pnpm test:e2e          # playwright test (auto-starts `pnpm dev` if not already running)
 ```
 
@@ -63,6 +65,7 @@ UI copy and toasts (sonner) are in Spanish — match this when adding user-facin
 
 - `migrations/` — sequential, zero-padded (`00000000000NNN_description.sql`), one logical change per file (enums, per-domain tables, RLS policies, RPCs, cron jobs, bugfixes)
 - `seed.sql` — local-only seed data; `auth.users` rows have documented GoTrue quirks, read the inline comments before editing
+- `audit_log` (migration 0053) records every change to payments, subscriptions, plan prices, bank accounts and profiles via the `audit_row_change()` trigger; add the trigger to any new money/access table
 - `schema.dbml` — hand-maintained snapshot, **not** auto-generated — update it by hand whenever migrations change the schema
 - `tests/database/` — pgTAP tests, numbered to roughly match migrations, plus `000_test_helpers.sql` (defines `tests.create_supabase_user(...)`, `tests.authenticate_as(...)` which does `set local role authenticated`). Every assertion needs an explicit description string (required by the installed pgtap version). Tests wrap in `begin/rollback`.
 
