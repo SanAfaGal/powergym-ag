@@ -50,14 +50,14 @@ UI copy and toasts (sonner) are in Spanish — match this when adding user-facin
 
 ### Supabase clients (`src/lib/supabase/`)
 
-- `client.ts` — browser client, Client Components only
+- No browser client: all Supabase access goes through the server client (server actions / Server Components). Add a `client.ts` only if a Client Component truly needs direct access.
 - `server.ts` — server client via `next/headers` cookies; swallows `setAll` failures in Server Components (middleware refreshes the session, so this is safe)
-- `middleware.ts` — `updateSession(request)`, used by `src/proxy.ts`; uses `getUser()` (not `getSession()`) to revalidate against Supabase rather than trusting the cookie
+- `middleware.ts` — `updateSession(request)`, used by `src/proxy.ts`; uses `getClaims()` (not `getSession()`), which verifies the JWT instead of trusting the cookie
 
 ### Auth gating (defense in depth, two layers)
 
 1. `src/proxy.ts`: no user → redirect `/login`; `profiles.is_active === false` → force `signOut()` and redirect to `/login?error=inactive` (must manually copy cookies from `supabaseResponse` onto the redirect response); logged-in user hitting `/login` → redirect `/dashboard`.
-2. `src/app/(dashboard)/layout.tsx`: re-checks `supabase.auth.getUser()` server-side (should be unreachable, but kept as a second gate), then fetches `profiles.full_name/role` to drive `AppSidebar` nav (admin vs employee).
+2. `src/app/(dashboard)/layout.tsx`: calls `getAuthContext()` (`src/lib/auth/session.ts`), which trusts the profile `src/proxy.ts` forwards in the `x-staff-profile` header (falling back to its own `getClaims()` + profile query), as a second gate, and uses the profile to drive `AppSidebar` nav (admin vs employee).
 
 ### Database (`supabase/`)
 
@@ -75,5 +75,6 @@ UI copy and toasts (sonner) are in Spanish — match this when adding user-facin
 ### Conventions
 
 - Single path alias: `@/*` → `./src/*`
-- `src/lib/validations/` is unused (empty) — validation lives per-module in `schema.ts`, not centrally
+- Validation lives per-module in `schema.ts`, not centrally
+- Module `index.ts` barrels export only what `app/` pages import; components inside a module import each other by relative path
 - Forms: `react-hook-form` + `@hookform/resolvers/zod`, submit handler calls the server action and surfaces `{ error }` back onto the form/toast
