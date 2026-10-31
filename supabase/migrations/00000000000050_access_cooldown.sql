@@ -156,6 +156,11 @@ begin
   select e.allowed, e.reason_code into v_allowed, v_reason
   from public.evaluate_access(v_client) e;
 
+  -- Two attempts for the same client at the same moment (two devices) must not
+  -- both pass the check below: the second waits here until the first one has
+  -- committed its granted row, then sees it. Released when the call ends.
+  perform pg_advisory_xact_lock(hashtext(v_client::text));
+
   -- anti-passback: someone who was just let in is not let in again until the
   -- cooldown passes (0 turns it off). Otherwise a person standing at the kiosk could keep the barrier
   -- open for whoever walks in behind them. Only a real entry starts the window
