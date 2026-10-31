@@ -13,6 +13,11 @@ import {
   SubscriptionsSection,
 } from "@/modules/subscriptions";
 import { listBankAccounts } from "@/modules/bank-accounts";
+import { getAuthContext } from "@/lib/auth/session";
+import {
+  getEnrollmentStatus,
+  FaceEnrollmentCard,
+} from "@/modules/access-control";
 
 export default async function ClientDetailPage({
   params,
@@ -29,6 +34,8 @@ export default async function ClientDetailPage({
     plans,
     paymentTypes,
     allBankAccounts,
+    enrollmentStatus,
+    auth,
   ] = await Promise.all([
     getClient(id).catch(() => null),
     listDocumentTypes(),
@@ -37,6 +44,8 @@ export default async function ClientDetailPage({
     listActivePlansWithPrice(),
     listPaymentTypes(),
     listBankAccounts(),
+    getEnrollmentStatus(id),
+    getAuthContext(),
   ]);
 
   if (!client) notFound();
@@ -53,7 +62,7 @@ export default async function ClientDetailPage({
           genderTypes={genderTypes}
         />
 
-        <div>
+        <div className="space-y-8">
           <SubscriptionsSection
             clientId={client.id}
             subscriptions={subscriptions}
@@ -61,6 +70,12 @@ export default async function ClientDetailPage({
             paymentTypes={paymentTypes}
             bankAccounts={activeBankAccounts}
             allBankAccounts={allBankAccounts}
+          />
+          <FaceEnrollmentCard
+            clientId={client.id}
+            clientName={`${client.first_name} ${client.last_name}`}
+            isAdmin={auth?.profile.role === "admin"}
+            status={enrollmentStatus}
           />
         </div>
       </div>

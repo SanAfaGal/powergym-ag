@@ -44,3 +44,12 @@ export function evaluateFrameQuality(o: FrameObservation): QualityVerdict {
   }
   return { ok: true };
 }
+
+// 0..1 score stored with a template (face_templates.quality_score). Face
+// size is the only component for now: a larger face means more pixels for
+// the 112x112 crop. A NaN measurement scores 0.
+export function captureQualityScore(o: FrameObservation): number {
+  const score = o.faceWidthRatio / 0.5;
+  if (!Number.isFinite(score)) return 0;
+  return Math.min(1, Math.max(0, score));
+}

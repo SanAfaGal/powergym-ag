@@ -1,4 +1,4 @@
-import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import type { FaceLandmarker } from "@mediapipe/tasks-vision";
 import type { FrameObservation } from "../quality";
 import type { LivenessSignal } from "../liveness";
 import type { Point } from "./align";
@@ -35,6 +35,9 @@ const EMPTY_SIGNAL: LivenessSignal = { eyesClosed: false, yaw: 0 };
 // MediaPipe's FaceLandmarker only DETECTS and measures (landmarks, head
 // pose, blendshapes). It does not identify anyone; that is the embedder.
 export async function createFaceDetector(): Promise<FaceDetector> {
+  const { FaceLandmarker, FilesetResolver } = await import(
+    "@mediapipe/tasks-vision"
+  );
   const fileset = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
   const options = {
     runningMode: "VIDEO" as const,
