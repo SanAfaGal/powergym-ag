@@ -16,5 +16,5 @@ test("without a granted permission the kiosk waits for the Activar cámara click
   await page.goto("/access");
   await expect(page.getByText("Cámara desactivada")).toBeVisible();
   await expect(page.getByRole("button", { name: "Activar cámara" })).toBeVisible();
-  await expect(page.getByText("Barrera bloqueada")).toBeVisible();
+  await expect(page.getByText("Esperando a la siguiente persona")).toBeVisible();
 });

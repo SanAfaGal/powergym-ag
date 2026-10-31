@@ -13,32 +13,57 @@ export type Embedder = {
   embed(video: HTMLVideoElement, analysis: FrameAnalysis): Promise<number[]>;
   // Runs the model on an already aligned, preprocessed 1x3x112x112 tensor.
   embedTensor(data: Float32Array): Promise<number[]>;
+  // Where the model runs: the GPU (fast) or the CPU (slower).
+  backend: "webgpu" | "wasm";
   close(): Promise<void>;
 };
 
-// ArcFace-family model (AuraFace glintr100) on ONNX Runtime Web. Single
-// WASM thread: multithreading needs cross-origin isolation headers, and the
-// embedding only runs when a face is stable, not on every frame.
-export async function createEmbedder(
-  modelUrl = "/models/glintr100.onnx",
-): Promise<Embedder> {
+type Ort = typeof import("onnxruntime-web/wasm");
+type Session = Awaited<ReturnType<Ort["InferenceSession"]["create"]>>;
+
+// Tries the GPU first (WebGPU): the ResNet100 model takes ~1.5-2.5 s per face
+// on a CPU/WASM and a fraction of that on a GPU. Without WebGPU, or if the
+// session fails to start, it falls back to the CPU in a proxy worker.
+async function createSession(
+  modelUrl: string,
+): Promise<{ ort: Ort; session: Session; backend: "webgpu" | "wasm" }> {
+  if ("gpu" in navigator) {
+    try {
+      const gpu = (await import("onnxruntime-web/webgpu")) as unknown as Ort;
+      gpu.env.wasm.wasmPaths = "/ort/";
+      gpu.env.wasm.numThreads = 1;
+      const session = await gpu.InferenceSession.create(modelUrl, {
+        executionProviders: ["webgpu"],
+        graphOptimizationLevel: "all",
+      });
+      return { ort: gpu, session, backend: "webgpu" };
+    } catch {
+      // fall through to the CPU
+    }
+  }
+
   // Loaded on demand: evaluating onnxruntime-web at module level breaks SSR
   // of any client component that imports this file, and keeps the runtime
   // out of every page that does not use the camera.
   const ort = await import("onnxruntime-web/wasm");
   ort.env.wasm.wasmPaths = "/ort/";
   ort.env.wasm.numThreads = 1;
-  // Run inference in a worker so the ~1 s of WASM compute does not freeze
-  // the page (camera preview, mesh overlay, buttons).
   // Measured: without this the UI is frozen for the whole inference; with it
   // the longest main-thread stall is ~30 ms. It must be set before the first
   // session is created (ONNX Runtime initializes once per page).
   ort.env.wasm.proxy = true;
-
   const session = await ort.InferenceSession.create(modelUrl, {
     executionProviders: ["wasm"],
     graphOptimizationLevel: "all",
   });
+  return { ort, session, backend: "wasm" };
+}
+
+// ArcFace-family model (AuraFace glintr100) on ONNX Runtime Web.
+export async function createEmbedder(
+  modelUrl = "/models/glintr100.onnx",
+): Promise<Embedder> {
+  const { ort, session, backend } = await createSession(modelUrl);
   const inputName = session.inputNames[0];
 
   const canvas = document.createElement("canvas");
@@ -55,6 +80,7 @@ export async function createEmbedder(
   }
 
   return {
+    backend,
     embedTensor,
     async embed(video, analysis) {
       if (!analysis.landmarks5) throw new Error("no aligned face");

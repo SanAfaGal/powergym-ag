@@ -17,7 +17,13 @@ if (!existsSync(ortDist) || !existsSync(mediapipeWasm)) {
 }
 
 mkdirSync(resolve(root, "public/ort"), { recursive: true });
-for (const file of ["ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) {
+for (const file of [
+  "ort-wasm-simd-threaded.mjs",
+  "ort-wasm-simd-threaded.wasm",
+  // WebGPU build (used when the browser has a GPU)
+  "ort-wasm-simd-threaded.jsep.mjs",
+  "ort-wasm-simd-threaded.jsep.wasm",
+]) {
   cpSync(resolve(ortDist, file), resolve(root, "public/ort", file));
 }
 cpSync(mediapipeWasm, resolve(root, "public/mediapipe/wasm"), { recursive: true });
