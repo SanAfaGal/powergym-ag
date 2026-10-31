@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraIcon, ScanFaceIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { attemptAccess, type AccessAttemptResult } from "../actions";
 import { SimulatedBarrier } from "../lib/barrier/SimulatedBarrier";
 import { pickChallenge } from "../lib/challengePicker";
-import { cosineSimilarity } from "../lib/embedding";
+import { createContinuityTracker } from "../lib/continuity";
 import {
   createLivenessSession,
   type LivenessChallenge,
@@ -18,23 +18,20 @@ import { drawFaceMesh } from "../lib/vision/drawMesh";
 import type { FrameAnalysis } from "../lib/vision/faceDetector";
 import { useCameraSession } from "../useCameraSession";
 import { AccessResultPanel } from "./AccessResultPanel";
-import { BarrierIndicator } from "./BarrierIndicator";
 
 // Fast while someone is in front of the camera (smooth mesh, ~0.6 s of
 // steadiness at STABLE_FRAMES), slow while the frame is empty.
 const ACTIVE_INTERVAL_MS = 120;
 const IDLE_INTERVAL_MS = 400;
-const STABLE_FRAMES = 5;
+const STABLE_FRAMES = 3;
 const MESH_OK = "rgba(74, 222, 128, 0.55)";
 const MESH_WARN = "rgba(251, 191, 36, 0.55)";
 const CHALLENGE_TIMEOUT_MS = 6000;
-// Long enough to read the richer result card, plus the camera-hide transition.
-const RESULT_MS = 6500;
-// The embedding taken after the challenge must resemble the one taken before
-// it, so the person who passed the challenge is the person being identified
-// (provisional value, to be calibrated with real faces).
-const IDENTITY_CONTINUITY_MIN = 0.5;
+// Long enough to read the short result card, plus the camera-hide transition.
+const RESULT_MS = 5000;
 const MAX_FINAL_WAIT_FRAMES = 20;
+// FaceMesh landmark index of the nose tip (normalized 0..1 in analysis.mesh).
+const NOSE_TIP = 1;
 
 // A pool that is somehow empty falls back to blink rather than crashing the
 // kiosk (the database already refuses an empty pool while liveness is on).
@@ -79,23 +76,24 @@ export function AccessKiosk({
   const session = useCameraSession();
   const { videoRef, detector, getEmbedder, isEmbedderReady } = session;
 
+  // No barrier graphic on screen (the access message is enough), but the
+  // controller stays behind the BarrierController port, so a real device can
+  // replace SimulatedBarrier later without touching the validation.
   const [barrier] = useState(() => new SimulatedBarrier());
-  const barrierState = useSyncExternalStore(
-    barrier.subscribe.bind(barrier),
-    () => barrier.state,
-    () => "locked" as const,
-  );
 
   const [phase, setPhase] = useState<Phase>("searching");
   const [verdict, setVerdict] = useState<QualityVerdict | null>(null);
   const [challenge, setChallenge] = useState<LivenessChallenge | null>(null);
   const [result, setResult] = useState<AccessAttemptResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Where the recognition model runs, shown next to the camera status so a
+  // slow kiosk can be diagnosed at a glance ("CPU" is much slower than "GPU").
+  const [backend, setBackend] = useState<"webgpu" | "wasm" | null>(null);
 
   const tracker = useRef(createStabilityTracker(STABLE_FRAMES));
   const liveness = useRef<ReturnType<typeof createLivenessSession> | null>(null);
   // Embeddings live only in these refs, for the length of one attempt.
-  const probePromise = useRef<Promise<number[]> | null>(null);
+  const continuity = useRef<ReturnType<typeof createContinuityTracker> | null>(null);
   const finalWait = useRef(0);
   const busy = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -111,6 +109,19 @@ export function AccessKiosk({
     },
     [],
   );
+
+  useEffect(() => {
+    if (session.status !== "ready") return;
+    let cancelled = false;
+    getEmbedder()
+      .then((m) => {
+        if (!cancelled) setBackend(m.backend);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [session.status, getEmbedder]);
 
   // Keep the screen awake while the kiosk is running (best effort).
   useEffect(() => {
@@ -132,7 +143,7 @@ export function AccessKiosk({
       busy.current = true;
       setPhase("processing");
 
-      probePromise.current = null;
+      continuity.current = null;
       finalWait.current = 0;
 
       const outcome = await attemptAccess({
@@ -163,30 +174,23 @@ export function AccessKiosk({
     [barrier],
   );
 
-  // Ends an attempt. The identity embedding (taken in the background while
-  // the person did the gesture) is awaited here; after a passed challenge a
-  // FRESH frame is embedded and must match it, tying the live gesture to the
-  // face being identified.
+  // Ends an attempt with ONE embedding, taken from a fresh frame after the
+  // gesture (a second, "before" embedding doubled the wait). Tying the gesture
+  // to the same face is done by following the face frame by frame instead
+  // (see continuity.ts).
   const finish = useCallback(
     async (
       passed: boolean,
-      fresh?: { video: HTMLVideoElement; analysis: FrameAnalysis },
+      fresh: { video: HTMLVideoElement; analysis: FrameAnalysis },
     ) => {
       busy.current = true;
       liveness.current = null;
+      continuity.current = null;
       setChallenge(null);
       try {
-        const before = await probePromise.current;
-        if (!before) throw new Error("no identity embedding");
-        if (passed && fresh) {
-          const after = await (await getEmbedder()).embed(fresh.video, fresh.analysis);
-          const sameFace = cosineSimilarity(before, after) >= IDENTITY_CONTINUITY_MIN;
-          await submit(sameFace, after);
-        } else {
-          await submit(false, before);
-        }
+        const embedding = await (await getEmbedder()).embed(fresh.video, fresh.analysis);
+        await submit(passed, embedding);
       } catch {
-        probePromise.current = null;
         busy.current = false;
         setPhase("searching");
         setErrorMessage("No se pudo procesar el rostro, intentá de nuevo");
@@ -194,6 +198,17 @@ export function AccessKiosk({
     },
     [getEmbedder, submit],
   );
+
+  // Drops the current challenge without recording anything (the face left or
+  // was replaced, so there is nothing to attribute the attempt to).
+  const abort = useCallback(() => {
+    liveness.current = null;
+    continuity.current = null;
+    finalWait.current = 0;
+    setChallenge(null);
+    setPhase("searching");
+    tracker.current.reset();
+  }, []);
 
   // One detection step; returns how long to wait before the next one. With
   // nobody in front of the camera it polls slowly (cheap), and speeds up as
@@ -234,26 +249,26 @@ export function AccessKiosk({
     }
 
     if (liveness.current) {
-      // A second person stepping in cancels the challenge.
-      if (!quality.ok && quality.reason === "multiple_faces") {
-        void finish(false);
+      const nose = analysis.mesh?.[NOSE_TIP] ?? null;
+      const state = continuity.current?.push(
+        nose ? { x: nose.x, y: nose.y } : null,
+        analysis.observation.faceCount,
+      );
+      if (state === "broken") {
+        abort();
         return next;
       }
 
-      const state = liveness.current.update(analysis.signal, performance.now());
-      if (state === "pending") return next;
-      if (state === "failed") {
-        void finish(false);
-        return next;
-      }
+      const outcome = liveness.current.update(analysis.signal, performance.now());
+      if (outcome === "pending") return next;
 
-      // Passed: wait for a usable frame to take the fresh embedding from.
+      // Done (passed or failed): needs a usable frame to take the embedding from.
       if (!quality.ok) {
         finalWait.current += 1;
-        if (finalWait.current > MAX_FINAL_WAIT_FRAMES) void finish(false);
+        if (finalWait.current > MAX_FINAL_WAIT_FRAMES) abort();
         return next;
       }
-      void finish(true, { video, analysis });
+      void finish(outcome === "passed", { video, analysis });
       return next;
     }
 
@@ -262,11 +277,7 @@ export function AccessKiosk({
     if (!isEmbedderReady()) return next;
 
     if (livenessRequired) {
-      // The challenge shows up right away; the identity embedding is computed
-      // in the background while the person performs the gesture.
-      const embedding = getEmbedder().then((m) => m.embed(video, analysis));
-      embedding.catch(() => {});
-      probePromise.current = embedding;
+      // The challenge shows up right away.
       finalWait.current = 0;
       const chosen = pickChallenge(
         challenges.length > 0 ? challenges : FALLBACK_POOL,
@@ -274,6 +285,12 @@ export function AccessKiosk({
       );
       lastChallenge.current = chosen;
       liveness.current = createLivenessSession(chosen, CHALLENGE_TIMEOUT_MS);
+      continuity.current = createContinuityTracker();
+      const nose = analysis.mesh?.[NOSE_TIP] ?? null;
+      continuity.current.push(
+        nose ? { x: nose.x, y: nose.y } : null,
+        analysis.observation.faceCount,
+      );
       setChallenge(chosen);
       setPhase("challenge");
       return next;
@@ -302,6 +319,7 @@ export function AccessKiosk({
     challenges,
     submit,
     finish,
+    abort,
   ]);
 
   useEffect(() => {
@@ -345,7 +363,7 @@ export function AccessKiosk({
     session.stop();
     if (resultTimer.current) clearTimeout(resultTimer.current);
     liveness.current = null;
-    probePromise.current = null;
+    continuity.current = null;
     busy.current = false;
     armed.current = true;
     tracker.current.reset();
@@ -432,6 +450,11 @@ export function AccessKiosk({
             className={`size-2 rounded-full ${live ? "animate-pulse bg-success" : "bg-white/50"}`}
           />
           {live ? "Cámara activa" : "Cámara apagada"}
+          {live && (
+            <span className="text-white/70">
+              · {backend === "webgpu" ? "GPU" : backend === "wasm" ? "CPU" : "cargando modelo"}
+            </span>
+          )}
         </div>
 
         {(session.status === "requesting" ||
@@ -476,7 +499,6 @@ export function AccessKiosk({
         <div className="min-h-48 flex-1 lg:min-h-0">
           <AccessResultPanel result={result} expanded={showResult} />
         </div>
-        <BarrierIndicator state={barrierState} />
       </div>
     </div>
   );
