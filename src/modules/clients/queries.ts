@@ -40,6 +40,8 @@ export type SortOption = "days_remaining_asc" | "days_remaining_desc";
 
 const PAGE_SIZE = 20;
 
+const EXPIRING_EXPORT_LIMIT = 1000;
+
 const EXPIRY_STATUSES: SubscriptionStatus[] = ["active", "expired"];
 
 // sort_days_remaining (migration 0040) mirrors days_remaining but nulls out
@@ -182,7 +184,11 @@ export async function listExpiringClients(
 
   query = applyClientFilters(query, filters);
 
-  const { data, error } = await query.order("end_date", { ascending: true });
+  // Capped: an open-ended range ("Ya vencidos") could otherwise return the
+  // whole history of lapsed clients in one request.
+  const { data, error } = await query
+    .order("end_date", { ascending: true })
+    .limit(EXPIRING_EXPORT_LIMIT);
 
   if (error) throw error;
 

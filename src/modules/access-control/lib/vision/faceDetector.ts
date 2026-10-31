@@ -5,6 +5,7 @@ import type { Point } from "./align";
 import type { MeshConnection, MeshLandmark } from "./drawMesh";
 import { eyesClosed, matrixToYawPitch, mouthOpen, smiling } from "./pose";
 import { meanBrightness } from "./preprocess";
+import { LANDMARKER_MODEL_URL } from "./modelUrls";
 
 export type FrameAnalysis = {
   observation: FrameObservation;
@@ -62,7 +63,7 @@ export async function createFaceDetector(): Promise<FaceDetector> {
     landmarker = await FaceLandmarker.createFromOptions(fileset, {
       ...options,
       baseOptions: {
-        modelAssetPath: "/models/face_landmarker.task",
+        modelAssetPath: LANDMARKER_MODEL_URL,
         delegate: "GPU",
       },
     });
@@ -70,7 +71,7 @@ export async function createFaceDetector(): Promise<FaceDetector> {
     landmarker = await FaceLandmarker.createFromOptions(fileset, {
       ...options,
       baseOptions: {
-        modelAssetPath: "/models/face_landmarker.task",
+        modelAssetPath: LANDMARKER_MODEL_URL,
         delegate: "CPU",
       },
     });
