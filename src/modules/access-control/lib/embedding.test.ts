@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   EMBEDDING_DIM,
   averageEmbeddings,
+  cosineSimilarity,
   isValidEmbedding,
   l2Normalize,
   toPgVector,
@@ -62,4 +63,19 @@ test("averageEmbeddings throws on an empty list", () => {
 
 test("toPgVector formats the exact pgvector text literal", () => {
   assert.equal(toPgVector([1, 0.5, 0]), "[1,0.5,0]");
+});
+
+test("cosineSimilarity is 1 for identical directions and 0 for orthogonal ones", () => {
+  assert.ok(Math.abs(cosineSimilarity(axis(0), axis(0)) - 1) < 1e-9);
+  assert.ok(Math.abs(cosineSimilarity(axis(0), axis(1))) < 1e-9);
+});
+
+test("cosineSimilarity ignores vector length", () => {
+  const doubled = axis(2).map((x) => x * 2);
+  assert.ok(Math.abs(cosineSimilarity(doubled, axis(2)) - 1) < 1e-9);
+});
+
+test("cosineSimilarity throws on mismatched sizes or a zero vector", () => {
+  assert.throws(() => cosineSimilarity([1, 0], [1]), /dimension/);
+  assert.throws(() => cosineSimilarity([0, 0], [1, 0]), /zero vector/);
 });

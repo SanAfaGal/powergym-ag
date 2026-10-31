@@ -28,6 +28,12 @@ export async function createEmbedder(
   const ort = await import("onnxruntime-web/wasm");
   ort.env.wasm.wasmPaths = "/ort/";
   ort.env.wasm.numThreads = 1;
+  // Run inference in a worker so the ~1 s of WASM compute does not freeze
+  // the page (camera preview, mesh overlay, buttons).
+  // Measured: without this the UI is frozen for the whole inference; with it
+  // the longest main-thread stall is ~30 ms. It must be set before the first
+  // session is created (ONNX Runtime initializes once per page).
+  ort.env.wasm.proxy = true;
 
   const session = await ort.InferenceSession.create(modelUrl, {
     executionProviders: ["wasm"],

@@ -2,6 +2,7 @@ import type { FaceLandmarker } from "@mediapipe/tasks-vision";
 import type { FrameObservation } from "../quality";
 import type { LivenessSignal } from "../liveness";
 import type { Point } from "./align";
+import type { MeshConnection, MeshLandmark } from "./drawMesh";
 import { eyesClosed, matrixToYawPitch } from "./pose";
 import { meanBrightness } from "./preprocess";
 
@@ -12,9 +13,14 @@ export type FrameAnalysis = {
   // pixels and in image space (left = smaller x). Null when there is not
   // exactly one face to align.
   landmarks5: Point[] | null;
+  // All 478 landmarks, normalized 0..1, for drawing the mesh overlay. Null
+  // unless exactly one face is in frame.
+  mesh: MeshLandmark[] | null;
 };
 
 export type FaceDetector = {
+  // Triangulation edges of the mesh, for drawFaceMesh.
+  connections: MeshConnection[];
   detect(video: HTMLVideoElement, nowMs: number): FrameAnalysis;
   close(): void;
 };
@@ -71,6 +77,7 @@ export async function createFaceDetector(): Promise<FaceDetector> {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
   return {
+    connections: FaceLandmarker.FACE_LANDMARKS_TESSELATION,
     detect(video, nowMs) {
       const result = landmarker.detectForVideo(video, nowMs);
       const faceCount = result.faceLandmarks.length;
@@ -85,6 +92,7 @@ export async function createFaceDetector(): Promise<FaceDetector> {
           },
           signal: EMPTY_SIGNAL,
           landmarks5: null,
+          mesh: null,
         };
       }
 
@@ -128,6 +136,7 @@ export async function createFaceDetector(): Promise<FaceDetector> {
         },
         signal: { eyesClosed: eyesClosed(blendshapes), yaw },
         landmarks5: [eyeL, eyeR, pt(NOSE), mouthL, mouthR],
+        mesh: lm,
       };
     },
     close() {

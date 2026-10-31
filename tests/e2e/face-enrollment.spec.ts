@@ -28,6 +28,8 @@ async function openMaria(page: Page) {
 // test starts (and ends) from a clean slate: an admin deleting the facial
 // record also revokes the consent.
 async function resetFaceRecord(page: Page) {
+  const cancelCapture = page.getByRole("dialog").getByRole("button", { name: "Cancelar" });
+  if (await cancelCapture.isVisible()) await cancelCapture.click();
   const del = page.getByRole("button", { name: "Eliminar registro facial" });
   if (await del.isVisible()) {
     await del.click();

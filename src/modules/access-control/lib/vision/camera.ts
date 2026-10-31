@@ -35,6 +35,8 @@ export async function startCamera(
         facingMode: "user",
         width: { ideal: 640 },
         height: { ideal: 480 },
+        // 15 fps is plenty for alignment and saves CPU/GPU/battery.
+        frameRate: { ideal: 15, max: 20 },
       },
       audio: false,
     });
