@@ -29,14 +29,15 @@ test("with the permission already granted the kiosk starts the camera by itself"
   await expect(page.getByText("Esperando a la siguiente persona")).toBeVisible();
 });
 
-test("with the fake camera the kiosk reports no face and keeps the barrier locked", async ({
+test("with the fake camera the kiosk waits calmly for a person (no error shown)", async ({
   page,
 }) => {
   // First model load (~265 MB over WASM) can take a while on a cold cache.
   test.setTimeout(150_000);
   await login(page, ADMIN);
   await page.goto("/access");
-  await expect(page.getByText("No se detecta un rostro")).toBeVisible({
+  // nobody in front of the camera: a calm invitation, not an error
+  await expect(page.getByText("Ubícate frente a la cámara")).toBeVisible({
     timeout: 90_000,
   });
   await expect(page.getByText("Esperando a la siguiente persona")).toBeVisible();
