@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  EXIT_TIMEOUT_MS,
   RETRY_AFTER_MS,
   initialKioskState,
   kioskReducer,
@@ -162,8 +163,8 @@ test("the result decides between granted, denied and not recognized", () => {
   );
 });
 
-test("after a granted or denied result the person must leave before a new attempt", () => {
-  let s = run([
+const afterGranted = (): KioskState =>
+  run([
     { type: "CAMERA_READY" },
     face(),
     { type: "STABLE", challenge: null },
@@ -172,17 +173,43 @@ test("after a granted or denied result the person must leave before a new attemp
     { type: "RESULT", result: result("granted", "ok") },
     { type: "DISPLAY_DONE", now: 10_000 },
   ]);
-  assert.deepEqual(s, { name: "DETECTING", requireExit: true, notBefore: 0 });
 
-  // still standing there: nothing happens, however long it takes
-  s = kioskReducer(s, face("ok", 60_000));
-  assert.equal(s.name, "DETECTING");
+test("after a result the same person is not processed again right away", () => {
+  const s = afterGranted();
+  assert.deepEqual(s, {
+    name: "DETECTING",
+    requireExit: true,
+    notBefore: 10_000 + EXIT_TIMEOUT_MS,
+  });
+  // still standing there: nothing happens
+  assert.equal(kioskReducer(s, face("ok", 11_000)).name, "DETECTING");
+});
 
-  // leaves, then comes back
-  s = kioskReducer(s, noFace(61_000));
+test("an empty frame clears the wait, and the next face starts a new attempt", () => {
+  let s = kioskReducer(afterGranted(), noFace(11_000));
   assert.deepEqual(s, { name: "DETECTING", requireExit: false, notBefore: 0 });
-  s = kioskReducer(s, face("ok", 62_000));
+  s = kioskReducer(s, face("ok", 12_000));
   assert.equal(s.name, "FACE_DETECTED");
+});
+
+test("when the camera sees a different person the wait is cleared at once (no empty frame needed)", () => {
+  // the next person stepped in the moment the previous one left: the screen
+  // never saw an empty frame
+  let s = kioskReducer(afterGranted(), { type: "PERSON_CHANGED" });
+  assert.deepEqual(s, { name: "DETECTING", requireExit: false, notBefore: 0 });
+  s = kioskReducer(s, face("ok", 11_000));
+  assert.equal(s.name, "FACE_DETECTED");
+});
+
+test("PERSON_CHANGED only matters while waiting for the previous person to leave", () => {
+  const detecting = run([{ type: "CAMERA_READY" }]);
+  assert.equal(kioskReducer(detecting, { type: "PERSON_CHANGED" }), detecting);
+});
+
+test("the wait can never block the kiosk forever: it expires on its own", () => {
+  const s = afterGranted();
+  assert.equal(kioskReducer(s, face("ok", 10_000 + EXIT_TIMEOUT_MS - 1)).name, "DETECTING");
+  assert.equal(kioskReducer(s, face("ok", 10_000 + EXIT_TIMEOUT_MS)).name, "FACE_DETECTED");
 });
 
 test("an unrecognized face is retried after a pause, without leaving", () => {

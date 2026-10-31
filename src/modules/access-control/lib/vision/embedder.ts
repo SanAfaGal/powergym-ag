@@ -18,24 +18,75 @@ export type Embedder = {
   close(): Promise<void>;
 };
 
+// The ~260 MB model file is kept in the browser's Cache Storage, so a page
+// reload reads it from disk (about half a second) instead of downloading it
+// again. (localStorage cannot hold it: ~5 MB, text only.) It is handed to ONNX
+// Runtime as a blob: URL rather than as bytes: passing 250 MB of bytes makes it
+// copy them between threads and was several times slower than a URL. Bump the
+// cache name if the model file changes. Cache Storage only exists in secure
+// contexts and can refuse a write when the quota is short; in both cases the
+// model is simply fetched from its URL as before.
+const MODEL_CACHE = "powergym-models-v1";
+
+async function loadModelSource(
+  url: string,
+): Promise<{ url: string; revoke: () => void }> {
+  const plain = { url, revoke: () => {} };
+  if (typeof caches === "undefined") return plain;
+  try {
+    const cache = await caches.open(MODEL_CACHE);
+    let response = await cache.match(url);
+    if (!response) {
+      response = await fetch(url);
+      if (!response.ok) return plain;
+      try {
+        await cache.put(url, response.clone());
+      } catch {
+        // quota exceeded: still use this download, just do not keep it
+      }
+    }
+    const blobUrl = URL.createObjectURL(await response.blob());
+    return { url: blobUrl, revoke: () => URL.revokeObjectURL(blobUrl) };
+  } catch {
+    return plain;
+  }
+}
+
 type Ort = typeof import("onnxruntime-web/wasm");
 type Session = Awaited<ReturnType<Ort["InferenceSession"]["create"]>>;
+
+function openSession(ort: Ort, url: string, provider: string[]) {
+  return ort.InferenceSession.create(url, {
+    executionProviders: provider,
+    graphOptimizationLevel: "all",
+  });
+}
 
 // Tries the GPU first (WebGPU): the ResNet100 model takes ~1.5-2.5 s per face
 // on a CPU/WASM and a fraction of that on a GPU. Without WebGPU, or if the
 // session fails to start, it falls back to the CPU in a proxy worker.
-async function createSession(
-  modelUrl: string,
+// "gpu" in navigator is not enough: without a real adapter (headless, old
+// drivers, blocklisted GPU) creating the session fails only AFTER the 260 MB
+// model was loaded into the WebGPU runtime, and the CPU attempt then starts
+// from scratch -- about twice the wait. Ask for an adapter first.
+async function hasWebGpuAdapter(): Promise<boolean> {
+  try {
+    const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+    return Boolean(await gpu?.requestAdapter());
+  } catch {
+    return false;
+  }
+}
+
+async function openBest(
+  url: string,
 ): Promise<{ ort: Ort; session: Session; backend: "webgpu" | "wasm" }> {
-  if ("gpu" in navigator) {
+  if (await hasWebGpuAdapter()) {
     try {
       const gpu = (await import("onnxruntime-web/webgpu")) as unknown as Ort;
       gpu.env.wasm.wasmPaths = "/ort/";
       gpu.env.wasm.numThreads = 1;
-      const session = await gpu.InferenceSession.create(modelUrl, {
-        executionProviders: ["webgpu"],
-        graphOptimizationLevel: "all",
-      });
+      const session = await openSession(gpu, url, ["webgpu"]);
       return { ort: gpu, session, backend: "webgpu" };
     } catch {
       // fall through to the CPU
@@ -52,14 +103,21 @@ async function createSession(
   // the longest main-thread stall is ~30 ms. It must be set before the first
   // session is created (ONNX Runtime initializes once per page).
   ort.env.wasm.proxy = true;
-  const session = await ort.InferenceSession.create(modelUrl, {
-    executionProviders: ["wasm"],
-    graphOptimizationLevel: "all",
-  });
+  const session = await openSession(ort, url, ["wasm"]);
   return { ort, session, backend: "wasm" };
 }
 
 // ArcFace-family model (AuraFace glintr100) on ONNX Runtime Web.
+async function createSession(modelUrl: string) {
+  const model = await loadModelSource(modelUrl);
+  try {
+    return await openBest(model.url);
+  } finally {
+    // the session already holds the model: the blob URL is no longer needed
+    model.revoke();
+  }
+}
+
 export async function createEmbedder(
   modelUrl = "/models/glintr100.onnx",
 ): Promise<Embedder> {

@@ -119,6 +119,13 @@ export function AccessKiosk({
   const continuity = useRef<ReturnType<typeof createContinuityTracker> | null>(null);
   const finalWait = useRef(0);
   const lastChallenge = useRef<LivenessChallenge | null>(null);
+  // Follows the person being attended from the moment the attempt starts, also
+  // through the result screen, to know when they leave or someone else arrives.
+  // After a result the kiosk waits for that (see EXIT_TIMEOUT_MS in the
+  // machine); an empty frame alone is not enough, since the next person may
+  // step in the very moment the previous one goes.
+  const watch = useRef<ReturnType<typeof createContinuityTracker> | null>(null);
+  const departed = useRef(false);
 
   // The camera session feeds the machine.
   useEffect(() => {
@@ -132,6 +139,14 @@ export function AccessKiosk({
     } else send({ type: "CAMERA_STOPPED" });
   }, [session.status, session.error, send]);
 
+  // The last mesh/frame drawn would stay painted on the dark background once
+  // the camera stops, so wipe the canvas whenever the camera is not running.
+  useEffect(() => {
+    if (session.status === "ready") return;
+    const canvas = canvasRef.current;
+    canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+  }, [session.status]);
+
   // Back to waiting: drop whatever the previous attempt left behind.
   useEffect(() => {
     if (state.name === "DETECTING" || state.name === "IDLE") {
@@ -141,6 +156,17 @@ export function AccessKiosk({
       stability.current.reset();
     }
   }, [state.name]);
+
+  useEffect(() => {
+    const waitingForNew =
+      state.name === "IDLE" ||
+      state.name === "FACE_DETECTED" ||
+      (state.name === "DETECTING" && !state.requireExit);
+    if (waitingForNew) {
+      watch.current = null;
+      departed.current = false;
+    }
+  }, [state]);
 
   // Results and errors go away by themselves after a few seconds.
   useEffect(() => {
@@ -258,16 +284,34 @@ export function AccessKiosk({
     }
 
     const nose = analysis.mesh?.[NOSE_TIP] ?? null;
-    const seen = () =>
-      continuity.current?.push(
+    const seenBy = (tracker: ReturnType<typeof createContinuityTracker>) =>
+      tracker.push(
         nose ? { x: nose.x, y: nose.y } : null,
         faceCount,
         analysis.observation.faceWidthRatio,
       );
+    const seen = () => (continuity.current ? seenBy(continuity.current) : undefined);
+
+    // The attended person: gone (no face) or replaced (the tracked face jumps or
+    // changes size) counts as "departed". Several faces are ignored, so a
+    // queue standing behind does not look like a departure.
+    if (watch.current) {
+      if (faceCount === 0) departed.current = true;
+      else if (faceCount === 1 && seenBy(watch.current) === "broken") {
+        departed.current = true;
+      }
+    }
 
     switch (stateRef.current.name) {
       case "DETECTING":
         send({ type: "FRAME", faceCount, hint, now });
+        if (
+          departed.current &&
+          stateRef.current.name === "DETECTING" &&
+          stateRef.current.requireExit
+        ) {
+          send({ type: "PERSON_CHANGED" });
+        }
         break;
 
       case "FACE_DETECTED": {
@@ -294,6 +338,9 @@ export function AccessKiosk({
           finalWait.current = 0;
           seen();
         }
+        watch.current = createContinuityTracker();
+        departed.current = false;
+        seenBy(watch.current);
         send({ type: "STABLE", challenge });
         // No challenge ran, so never claim liveness passed: if the server
         // setting changed since this page loaded, the RPC denies instead of
@@ -425,14 +472,14 @@ export function AccessKiosk({
       )}
 
       <div
-        className={`grid gap-5 transition-[grid-template-columns,column-gap] duration-700 ease-in-out lg:min-h-[30rem] ${
+        className={`grid gap-0 transition-[grid-template-columns] duration-700 ease-in-out lg:min-h-[30rem] ${
           livenessRequired
             ? "lg:h-[calc(100svh-11rem)]"
             : "lg:h-[calc(100svh-16.5rem)]"
         } ${
           showResult
-            ? "lg:grid-cols-[minmax(0,0fr)_minmax(0,1fr)] lg:gap-x-0"
-            : "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+            ? "lg:grid-cols-[minmax(0,0fr)_minmax(0,1fr)]"
+            : "lg:grid-cols-[minmax(0,1fr)_minmax(0,0fr)]"
         }`}
       >
         <div
@@ -446,7 +493,10 @@ export function AccessKiosk({
             ref={videoRef}
             muted
             playsInline
-            className="absolute inset-0 size-full -scale-x-100 object-cover"
+            // min size: while the camera is tucked away its box is 0 wide; the
+            // video keeps a real size (clipped, invisible) so the browser keeps
+            // delivering frames and the kiosk can still see who is there
+            className="absolute inset-0 size-full min-h-[240px] min-w-[320px] -scale-x-100 object-cover"
           />
           <canvas
             ref={canvasRef}
@@ -509,7 +559,13 @@ export function AccessKiosk({
           )}
         </div>
 
-        <div className="flex min-h-0 flex-col gap-5">
+        <div
+          className={`flex min-h-0 min-w-0 flex-col overflow-hidden transition-opacity duration-500 ${
+            showResult
+              ? "opacity-100"
+              : "pointer-events-none opacity-0 max-lg:h-0"
+          }`}
+        >
           <div className="min-h-48 flex-1 lg:min-h-0">
             <AccessResultPanel view={view} expanded={showResult} />
           </div>
