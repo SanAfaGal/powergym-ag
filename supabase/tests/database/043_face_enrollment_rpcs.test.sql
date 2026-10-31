@@ -77,7 +77,8 @@ select public.enroll_face(
   pg_temp.vec(2), 'auraface', 'v2', 0.8);
 reset role;
 select is(
-  (select count(*)::text || ':' || max(model_version) from public.face_templates),
+  (select count(*)::text || ':' || max(model_version) from public.face_templates
+   where client_id = (select id from public.clients where dni_number = 'ENROLL-1')),
   '1:v2',
   're-enrolling replaces the template instead of adding a second row'
 );

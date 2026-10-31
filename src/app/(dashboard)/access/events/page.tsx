@@ -15,7 +15,10 @@ export default async function AccessEventsPage() {
   const isAdmin = auth?.profile.role === "admin";
 
   const [events, settings] = await Promise.all([
-    listAccessEvents({ limit: isAdmin ? ADMIN_LIMIT : EMPLOYEE_LIMIT }),
+    listAccessEvents({
+      limit: isAdmin ? ADMIN_LIMIT : EMPLOYEE_LIMIT,
+      withScores: isAdmin,
+    }),
     isAdmin ? getAccessSettings() : Promise.resolve(null),
   ]);
 
