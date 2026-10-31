@@ -9,6 +9,7 @@ import {
   Landmark,
   LayoutDashboard,
   Moon,
+  ScanFace,
   Sun,
   UserCog,
   Users,
@@ -34,6 +35,7 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/plans", label: "Planes", icon: CreditCard },
+  { href: "/access", label: "Acceso", icon: ScanFace },
 ];
 
 const ADMIN_NAV_LINKS = [
