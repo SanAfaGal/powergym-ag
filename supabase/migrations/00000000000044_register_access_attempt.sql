@@ -48,7 +48,9 @@ begin
     raise exception 'staff only';
   end if;
 
-  if vector_dims(p_embedding) <> 512 or vector_norm(p_embedding) = 0 then
+  if p_embedding is null
+     or vector_dims(p_embedding) is distinct from 512
+     or coalesce(vector_norm(p_embedding), 0) = 0 then
     raise exception 'invalid embedding';
   end if;
 
@@ -56,7 +58,8 @@ begin
   into v_threshold, v_liveness_required
   from public.access_settings s;
 
-  if v_liveness_required and not p_liveness_passed then
+  -- fail closed: an unknown (NULL) liveness result counts as failed
+  if v_liveness_required is not false and not coalesce(p_liveness_passed, false) then
     insert into public.access_events (
       decision, reason_code, threshold_used, liveness_passed,
       device_label, user_agent, operator_id
@@ -75,12 +78,14 @@ begin
   order by ft.embedding <=> p_embedding
   limit 1;
 
-  if v_client is null or v_score < v_threshold then
+  -- fail closed on every NULL (no template, no score, missing settings row)
+  if v_client is null or v_score is null or v_threshold is null
+     or not (v_score >= v_threshold) then
     insert into public.access_events (
       decision, reason_code, match_score, threshold_used, liveness_passed,
       device_label, user_agent, operator_id
     ) values (
-      'denied', 'face_not_recognized', v_score, v_threshold, p_liveness_passed,
+      'denied', 'face_not_recognized', v_score, v_threshold, coalesce(p_liveness_passed, false),
       p_device_label, p_user_agent, auth.uid()
     );
     return query select 'denied'::text, 'face_not_recognized'::text, null::uuid,
@@ -97,7 +102,7 @@ begin
     liveness_passed, device_label, user_agent, operator_id, model_version
   ) values (
     v_client, v_decision, v_reason, v_score, v_threshold,
-    p_liveness_passed, p_device_label, p_user_agent, auth.uid(), v_model_version
+    coalesce(p_liveness_passed, false), p_device_label, p_user_agent, auth.uid(), v_model_version
   );
 
   return query

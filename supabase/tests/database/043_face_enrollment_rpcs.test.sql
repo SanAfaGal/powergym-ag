@@ -8,7 +8,7 @@
 --
 -- Every assertion passes an explicit description (see 003_clients.test.sql).
 begin;
-select plan(18);
+select plan(19);
 
 -- unit vector along axis p: a valid 512-d embedding, distinct per p
 create function pg_temp.vec(p integer) returns extensions.vector
@@ -129,6 +129,17 @@ select throws_ok(
        pg_temp.vec(1), 'auraface', 'v1', 0.9) $$,
   'P0001', 'consent required',
   'after revocation, enrolling needs a fresh consent'
+);
+
+select tests.authenticate_as('enroll-staff@example.test');
+select public.grant_biometric_consent(
+  (select id from public.clients where dni_number = 'ENROLL-1'), '2026-10-v1');
+select throws_ok(
+  $$ select public.enroll_face(
+       (select id from public.clients where dni_number = 'ENROLL-1'),
+       null::extensions.vector, 'auraface', 'v1', 0.9) $$,
+  'P0001', 'invalid embedding',
+  'a NULL embedding is rejected on enrollment'
 );
 
 -- ---- deactivated staff ----
