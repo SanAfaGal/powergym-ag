@@ -5,6 +5,7 @@ import {
   MAX_ABS_YAW_DEG,
   MIN_BRIGHTNESS,
   MIN_FACE_WIDTH_RATIO,
+  captureQualityScore,
   evaluateFrameQuality,
   type FrameObservation,
 } from "./quality.ts";
@@ -70,4 +71,14 @@ test("brightness at the minimum is ok, just below is too_dark", () => {
 test("NaN measurements fail closed instead of passing", () => {
   assert.equal(evaluateFrameQuality({ ...good, yaw: NaN }).ok, false);
   assert.equal(evaluateFrameQuality({ ...good, brightness: NaN }).ok, false);
+});
+
+test("captureQualityScore scales with face size and is capped at 1", () => {
+  assert.equal(captureQualityScore({ ...good, faceWidthRatio: 0.5 }), 1);
+  assert.equal(captureQualityScore({ ...good, faceWidthRatio: 0.25 }), 0.5);
+  assert.equal(captureQualityScore({ ...good, faceWidthRatio: 1 }), 1);
+});
+
+test("captureQualityScore is 0 for a NaN measurement", () => {
+  assert.equal(captureQualityScore({ ...good, faceWidthRatio: NaN }), 0);
 });

@@ -29,3 +29,4 @@ export type {
   BarrierState,
 } from "./lib/barrier/BarrierController";
 export { SimulatedBarrier } from "./lib/barrier/SimulatedBarrier";
+export { FaceEnrollmentCard } from "./components/FaceEnrollmentCard";

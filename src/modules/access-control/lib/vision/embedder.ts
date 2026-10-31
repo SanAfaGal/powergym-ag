@@ -1,4 +1,3 @@
-import * as ort from "onnxruntime-web/wasm";
 import { l2Normalize } from "../embedding";
 import {
   ARCFACE_TEMPLATE,
@@ -23,6 +22,10 @@ export type Embedder = {
 export async function createEmbedder(
   modelUrl = "/models/glintr100.onnx",
 ): Promise<Embedder> {
+  // Loaded on demand: evaluating onnxruntime-web at module level breaks SSR
+  // of any client component that imports this file, and keeps the runtime
+  // out of every page that does not use the camera.
+  const ort = await import("onnxruntime-web/wasm");
   ort.env.wasm.wasmPaths = "/ort/";
   ort.env.wasm.numThreads = 1;
 
