@@ -74,27 +74,34 @@ export function AccessResultPanel({
       )}
 
       {client ? (
-        <div className="flex w-full max-w-xl flex-col items-center gap-3 text-foreground">
+        <div
+          className={`flex w-full flex-col items-center gap-3 text-foreground ${
+            big ? "max-w-4xl" : "max-w-xl"
+          }`}
+        >
           <p className={`font-semibold ${big ? "text-5xl" : "text-3xl"}`}>
             {client.fullName}
           </p>
 
           {until && (
-            <div className="space-y-0.5">
-              <p
-                className={`font-semibold ${UNTIL_TONE[until.tone]} ${
-                  big ? "text-3xl" : "text-xl"
-                }`}
-              >
+            // One line: "Puede ingresar hasta el domingo, 29 de noviembre · Le
+            // quedan 29 días". Only wraps (at the separator) on a narrow screen.
+            <p
+              className={`font-semibold ${UNTIL_TONE[until.tone]} ${
+                big ? "text-2xl" : "text-lg"
+              }`}
+            >
+              <span className="whitespace-nowrap">
                 <CalendarCheckIcon className="mr-2 inline size-6 align-[-4px]" />
                 {until.headline}
-              </p>
+              </span>
               {until.detail && (
-                <p className={`text-muted-foreground ${big ? "text-xl" : "text-base"}`}>
+                <span className="whitespace-nowrap font-normal text-muted-foreground">
+                  {" · "}
                   {until.detail}
-                </p>
+                </span>
               )}
-            </div>
+            </p>
           )}
         </div>
       ) : (
