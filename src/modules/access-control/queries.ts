@@ -176,22 +176,20 @@ export async function listAccessEvents(
   };
 }
 
-// Attendance comes from the granted entries still retained (12 months).
+// Attendance comes from the granted entries still retained (12 months). The
+// RPC (migration 0053) groups them per Bogota day in SQL, so at most ~366 rows
+// travel here instead of every entry.
 export async function getClientAttendance(
   clientId: string
 ): Promise<AttendanceSummary> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("access_events")
-    .select("occurred_at")
-    .eq("client_id", clientId)
-    .eq("decision", "granted")
-    .order("occurred_at", { ascending: false })
-    .limit(5000);
+  const { data, error } = await supabase.rpc("get_client_attendance", {
+    p_client_id: clientId,
+  });
 
   if (error) throw error;
   return summarizeAttendance(
-    (data ?? []).map((row) => row.occurred_at as string),
+    ((data ?? []) as { last_at: string }[]).map((row) => row.last_at),
     bogotaToday()
   );
 }
