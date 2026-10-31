@@ -29,3 +29,26 @@ export function eyesClosed(
     score("eyeBlinkRight") > EYE_CLOSED_SCORE
   );
 }
+
+export const MOUTH_OPEN_SCORE = 0.5;
+export const SMILE_SCORE = 0.5;
+
+const blendshape = (
+  blendshapes: { categoryName: string; score: number }[],
+  name: string,
+) => blendshapes.find((b) => b.categoryName === name)?.score ?? 0;
+
+export function mouthOpen(
+  blendshapes: { categoryName: string; score: number }[],
+): boolean {
+  return blendshape(blendshapes, "jawOpen") > MOUTH_OPEN_SCORE;
+}
+
+export function smiling(
+  blendshapes: { categoryName: string; score: number }[],
+): boolean {
+  return (
+    blendshape(blendshapes, "mouthSmileLeft") > SMILE_SCORE &&
+    blendshape(blendshapes, "mouthSmileRight") > SMILE_SCORE
+  );
+}

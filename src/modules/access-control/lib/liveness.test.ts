@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createLivenessSession } from "./liveness.ts";
 
-const open = (yaw = 0) => ({ eyesClosed: false, yaw });
-const closed = (yaw = 0) => ({ eyesClosed: true, yaw });
+const open = (yaw = 0) => ({ eyesClosed: false, yaw, mouthOpen: false, smiling: false });
+const closed = (yaw = 0) => ({ eyesClosed: true, yaw, mouthOpen: false, smiling: false });
+const mouth = { eyesClosed: false, yaw: 0, mouthOpen: true, smiling: false };
+const smile = { eyesClosed: false, yaw: 0, mouthOpen: false, smiling: true };
 
 test("a full blink (open, closed, open) passes", () => {
   const s = createLivenessSession("blink", 5000);
@@ -70,4 +72,41 @@ test("a turn only counts after a frontal frame was seen first", () => {
   assert.equal(s.update(open(40), 0), "pending");
   assert.equal(s.update(open(3), 100), "pending");
   assert.equal(s.update(open(40), 200), "passed");
+});
+
+test("open_mouth passes after a closed-mouth frame, never on a first open one", () => {
+  const ok = createLivenessSession("open_mouth", 5000);
+  assert.equal(ok.update(open(), 0), "pending");
+  assert.equal(ok.update(mouth, 100), "passed");
+
+  const photo = createLivenessSession("open_mouth", 5000);
+  assert.equal(photo.update(mouth, 0), "pending");
+  assert.equal(photo.update(mouth, 100), "pending");
+});
+
+test("smile passes after a neutral frame, never on a first smiling one", () => {
+  const ok = createLivenessSession("smile", 5000);
+  assert.equal(ok.update(open(), 0), "pending");
+  assert.equal(ok.update(smile, 100), "passed");
+
+  const photo = createLivenessSession("smile", 5000);
+  assert.equal(photo.update(smile, 0), "pending");
+  assert.equal(photo.update(smile, 100), "pending");
+});
+
+test("turn_any passes on either side once a frontal frame was seen", () => {
+  for (const yaw of [-30, 30]) {
+    const s = createLivenessSession("turn_any", 5000);
+    assert.equal(s.update(open(0), 0), "pending");
+    assert.equal(s.update(open(yaw), 100), "passed");
+  }
+  const photo = createLivenessSession("turn_any", 5000);
+  assert.equal(photo.update(open(40), 0), "pending");
+  assert.equal(photo.update(open(-40), 100), "pending");
+});
+
+test("an unfinished gesture fails at the timeout", () => {
+  const s = createLivenessSession("smile", 1000);
+  s.update(open(), 0);
+  assert.equal(s.update(open(), 1500), "failed");
 });

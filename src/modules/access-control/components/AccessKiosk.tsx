@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { CameraIcon, ScanFaceIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { attemptAccess, type AccessAttemptResult } from "../actions";
 import { SimulatedBarrier } from "../lib/barrier/SimulatedBarrier";
+import { pickChallenge } from "../lib/challengePicker";
 import { cosineSimilarity } from "../lib/embedding";
 import {
   createLivenessSession,
@@ -12,12 +14,16 @@ import {
 import { evaluateFrameQuality, type QualityVerdict } from "../lib/quality";
 import { createStabilityTracker } from "../lib/stability";
 import { cameraErrorMessage, qualityMessage } from "../lib/uiMessages";
+import { drawFaceMesh } from "../lib/vision/drawMesh";
 import { useCameraSession } from "../useCameraSession";
 import { AccessResultPanel } from "./AccessResultPanel";
 import { BarrierIndicator } from "./BarrierIndicator";
 
-const DETECT_INTERVAL_MS = 300;
-const STABLE_FRAMES = 3;
+// Fast enough for a smooth mesh; STABLE_FRAMES keeps the ~1 s of steadiness.
+const DETECT_INTERVAL_MS = 120;
+const STABLE_FRAMES = 8;
+const MESH_OK = "rgba(74, 222, 128, 0.55)";
+const MESH_WARN = "rgba(251, 191, 36, 0.55)";
 const CHALLENGE_TIMEOUT_MS = 6000;
 const RESULT_MS = 4000;
 // The embedding taken after the challenge must resemble the one taken before
@@ -26,18 +32,32 @@ const RESULT_MS = 4000;
 const IDENTITY_CONTINUITY_MIN = 0.5;
 const MAX_FINAL_WAIT_FRAMES = 20;
 
-// Only blink for now: the sign of yaw against the person's real left/right
-// still has to be confirmed with a real face (docs/access-control/
-// decisions.md), and a wrong sign would make every turn challenge fail.
-const CHALLENGES: LivenessChallenge[] = ["blink"];
+// Drawn at random per attempt (never the same twice in a row). All of them
+// are independent of the sign of yaw, which is still unverified with a real
+// face; turn_left / turn_right stay out of the pool until it is.
+const CHALLENGES: LivenessChallenge[] = ["blink", "open_mouth", "smile", "turn_any"];
 
 const CHALLENGE_PROMPT: Record<LivenessChallenge, string> = {
   blink: "Parpadeá una vez para confirmar",
+  open_mouth: "Abrí la boca para confirmar",
+  smile: "Sonreí para confirmar",
+  turn_any: "Girá la cabeza hacia un lado",
   turn_left: "Girá la cabeza hacia tu izquierda",
   turn_right: "Girá la cabeza hacia tu derecha",
 };
 
 type Phase = "searching" | "challenge" | "processing" | "result";
+
+type Tone = "info" | "warn" | "ok" | "error";
+
+// Solid-ish backgrounds so the instruction stays readable over any camera
+// image, in a bright gym or a dark room.
+const TONE_CLASS: Record<Tone, string> = {
+  info: "bg-background/85 text-foreground",
+  warn: "bg-warning/90 text-warning-foreground",
+  ok: "bg-success/90 text-success-foreground",
+  error: "bg-destructive/90 text-white",
+};
 
 function deviceLabel() {
   return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
@@ -68,6 +88,8 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
   const probe = useRef<number[] | null>(null);
   const finalWait = useRef(0);
   const busy = useRef(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastChallenge = useRef<LivenessChallenge | null>(null);
   // After a result the kiosk waits for the person to leave the frame, so a
   // visitor standing in front of the camera is not re-evaluated in a loop.
   const armed = useRef(true);
@@ -140,7 +162,26 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
 
       const analysis = detector.current.detect(video, performance.now());
       const quality = evaluateFrameQuality(analysis.observation);
-      setVerdict(quality);
+      setVerdict((prev) =>
+        prev && prev.ok === quality.ok && (quality.ok || (!prev.ok && prev.reason === quality.reason))
+          ? prev
+          : quality,
+      );
+
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (canvas && ctx) {
+        if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+        if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+        drawFaceMesh(
+          ctx,
+          analysis.mesh,
+          detector.current.connections,
+          canvas.width,
+          canvas.height,
+          quality.ok ? MESH_OK : MESH_WARN,
+        );
+      }
 
       if (!armed.current) {
         if (!quality.ok && quality.reason === "no_face") armed.current = true;
@@ -209,7 +250,8 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
       if (livenessRequired) {
         probe.current = first;
         finalWait.current = 0;
-        const chosen = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+        const chosen = pickChallenge(CHALLENGES, lastChallenge.current);
+        lastChallenge.current = chosen;
         liveness.current = createLivenessSession(chosen, CHALLENGE_TIMEOUT_MS);
         setChallenge(chosen);
         setPhase("challenge");
@@ -252,6 +294,18 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
     else hint = verdict.ok ? "Rostro detectado" : qualityMessage(verdict.reason);
   }
 
+  const message = errorMessage ?? hint;
+  const tone: Tone =
+    errorMessage || session.status === "error"
+      ? "error"
+      : session.status !== "ready"
+        ? "info"
+        : phase === "challenge" || (verdict?.ok && phase === "searching")
+          ? "ok"
+          : verdict && !verdict.ok && verdict.reason !== "no_face"
+            ? "warn"
+            : "info";
+
   const ring =
     phase === "result" && result
       ? result.decision === "granted"
@@ -259,39 +313,82 @@ export function AccessKiosk({ livenessRequired }: { livenessRequired: boolean })
         : "ring-4 ring-destructive"
       : "";
 
+  const live = session.status === "ready";
+  const showGuide = live && phase === "searching";
+
   return (
-    <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
-      <div className="space-y-3">
+    <div className="grid gap-5 lg:h-[calc(100svh-11rem)] lg:min-h-[30rem] lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div
+        className={`relative min-h-[65svh] overflow-hidden rounded-2xl bg-neutral-900 shadow-lg lg:min-h-0 ${ring}`}
+      >
         <video
           ref={videoRef}
           muted
           playsInline
-          className={`aspect-[3/4] w-full -scale-x-100 rounded-lg bg-muted object-cover md:aspect-[4/3] ${ring}`}
+          className="absolute inset-0 size-full -scale-x-100 object-cover"
         />
-        <p className="min-h-6 text-center text-sm text-muted-foreground" aria-live="polite">
-          {errorMessage ?? hint}
-        </p>
-        <div className="flex justify-center">
-          {session.status === "off" || session.status === "error" ? (
-            <Button onClick={() => void session.start()}>
-              {session.status === "error" ? "Reintentar" : "Activar cámara"}
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={stop}>
+        <canvas
+          ref={canvasRef}
+          className="pointer-events-none absolute inset-0 size-full -scale-x-100 object-cover"
+        />
+
+        {showGuide && (
+          <div
+            className={`pointer-events-none absolute left-1/2 top-[45%] aspect-[3/4] h-[62%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-dashed transition-colors duration-300 ${
+              tone === "ok" ? "border-success/80" : "border-white/50"
+            }`}
+          />
+        )}
+
+        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
+          <span
+            className={`size-2 rounded-full ${live ? "animate-pulse bg-success" : "bg-white/50"}`}
+          />
+          {live ? "Cámara activa" : "Cámara apagada"}
+        </div>
+
+        {(session.status === "requesting" ||
+          session.status === "loading" ||
+          live) && (
+          <div className="absolute right-4 top-4">
+            <Button size="sm" variant="secondary" onClick={stop}>
               Detener
             </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-col justify-between gap-6">
-        {result ? (
-          <AccessResultPanel result={result} />
-        ) : (
-          <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-            El resultado del acceso aparece acá.
           </div>
         )}
+
+        {(session.status === "off" || session.status === "error") && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-neutral-900/80 p-6 text-center text-white">
+            <ScanFaceIcon className="size-20 opacity-80" />
+            <p className="max-w-xs text-lg opacity-90">
+              {session.status === "error"
+                ? "No se pudo iniciar la cámara"
+                : "Activá la cámara para empezar a verificar accesos"}
+            </p>
+            <Button size="lg" onClick={() => void session.start()}>
+              <CameraIcon />
+              {session.status === "error" ? "Reintentar" : "Activar cámara"}
+            </Button>
+          </div>
+        )}
+
+        {message && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`absolute inset-x-0 bottom-0 px-5 py-4 text-center text-xl font-semibold backdrop-blur-md md:text-2xl ${TONE_CLASS[tone]} ${
+              phase === "challenge" ? "animate-pulse text-3xl md:text-4xl" : ""
+            }`}
+          >
+            {message}
+          </div>
+        )}
+      </div>
+
+      <div className="flex min-h-0 flex-col gap-5">
+        <div className="min-h-0 flex-1">
+          <AccessResultPanel result={result} />
+        </div>
         <BarrierIndicator state={barrierState} />
       </div>
     </div>

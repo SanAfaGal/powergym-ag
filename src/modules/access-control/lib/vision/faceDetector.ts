@@ -3,7 +3,7 @@ import type { FrameObservation } from "../quality";
 import type { LivenessSignal } from "../liveness";
 import type { Point } from "./align";
 import type { MeshConnection, MeshLandmark } from "./drawMesh";
-import { eyesClosed, matrixToYawPitch } from "./pose";
+import { eyesClosed, matrixToYawPitch, mouthOpen, smiling } from "./pose";
 import { meanBrightness } from "./preprocess";
 
 export type FrameAnalysis = {
@@ -36,7 +36,12 @@ const MOUTH_B = 291;
 const SAMPLE_W = 64;
 const SAMPLE_H = 48;
 
-const EMPTY_SIGNAL: LivenessSignal = { eyesClosed: false, yaw: 0 };
+const EMPTY_SIGNAL: LivenessSignal = {
+  eyesClosed: false,
+  yaw: 0,
+  mouthOpen: false,
+  smiling: false,
+};
 
 // MediaPipe's FaceLandmarker only DETECTS and measures (landmarks, head
 // pose, blendshapes). It does not identify anyone; that is the embedder.
@@ -134,7 +139,12 @@ export async function createFaceDetector(): Promise<FaceDetector> {
           pitch,
           brightness,
         },
-        signal: { eyesClosed: eyesClosed(blendshapes), yaw },
+        signal: {
+          eyesClosed: eyesClosed(blendshapes),
+          yaw,
+          mouthOpen: mouthOpen(blendshapes),
+          smiling: smiling(blendshapes),
+        },
         landmarks5: [eyeL, eyeR, pt(NOSE), mouthL, mouthR],
         mesh: lm,
       };

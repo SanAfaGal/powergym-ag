@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { eyesClosed, matrixToYawPitch } from "./pose.ts";
+import { eyesClosed, matrixToYawPitch, mouthOpen, smiling } from "./pose.ts";
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -53,4 +53,20 @@ test("eyes are closed only when both blink scores are high", () => {
 
 test("missing blink blendshapes count as eyes open", () => {
   assert.equal(eyesClosed([{ categoryName: "jawOpen", score: 1 }]), false);
+});
+
+test("the mouth is open when jawOpen is high", () => {
+  assert.equal(mouthOpen([{ categoryName: "jawOpen", score: 0.7 }]), true);
+  assert.equal(mouthOpen([{ categoryName: "jawOpen", score: 0.2 }]), false);
+  assert.equal(mouthOpen([]), false);
+});
+
+test("a smile needs both mouth corners raised", () => {
+  const sm = (l: number, r: number) => [
+    { categoryName: "mouthSmileLeft", score: l },
+    { categoryName: "mouthSmileRight", score: r },
+  ];
+  assert.equal(smiling(sm(0.8, 0.7)), true);
+  assert.equal(smiling(sm(0.8, 0.1)), false);
+  assert.equal(smiling([]), false);
 });
