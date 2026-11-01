@@ -66,8 +66,11 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// Static vision assets (the 260 MB model, WASM runtimes) are public files with
+// no user data: skipping the session check for them avoids a JWT validation
+// and a profile query on every one of those downloads.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|models/|ort/|mediapipe/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
