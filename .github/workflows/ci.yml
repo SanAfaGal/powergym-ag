@@ -22,6 +22,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      # next-env.d.ts is git-ignored; it declares the *.svg/*.png modules
+      - run: pnpm exec next typegen
       - run: pnpm exec tsc --noEmit
       - run: pnpm test:unit
 
