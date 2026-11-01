@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
-import { Manrope, Quicksand } from "next/font/google";
+import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const manrope = Manrope({
+// Self-hosted (latin subset, variable weight) instead of next/font/google:
+// the Google variant makes the build download the fonts, which failed inside
+// Netlify's builder ("next/font/google queries have exactly one entry"), and
+// it would leave a kiosk on a local network without its fonts. The files are
+// the same Manrope / Quicksand woff2 that Google serves for the latin range.
+const manrope = localFont({
+  src: "./fonts/Manrope-latin.woff2",
   variable: "--font-manrope",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
+  display: "swap",
 });
 
-const quicksand = Quicksand({
+const quicksand = localFont({
+  src: "./fonts/Quicksand-latin.woff2",
   variable: "--font-quicksand",
-  subsets: ["latin"],
   // 600 isn't used anywhere -- every font-heading element pairs with either
   // font-medium (500, card/dialog/sheet titles) or font-bold (700, page
-  // titles), never font-semibold. Declaring it anyway made Next.js preload
-  // a font file the browser never actually used.
-  weight: ["500", "700"],
+  // titles), never font-semibold.
+  weight: "500 700",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
