@@ -175,7 +175,7 @@ export async function uploadClientPhoto(
   formData: FormData
 ): Promise<{ error: string } | { success: true }> {
   const file = formData.get("photo");
-  if (!(file instanceof File) || !z.string().uuid().safeParse(clientId).success) {
+  if (!(file instanceof File) || !z.guid().safeParse(clientId).success) {
     return { error: INVALID_DATA_MESSAGE };
   }
   const problem = checkPhoto(file);
