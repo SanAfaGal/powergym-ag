@@ -23,6 +23,13 @@ for (const file of [
   // WebGPU build (used when the browser has a GPU)
   "ort-wasm-simd-threaded.jsep.mjs",
   "ort-wasm-simd-threaded.jsep.wasm",
+  // onnxruntime-web >= 1.2x asks for these two WebGPU variants depending on
+  // the browser (asyncify, or JSPI where the engine supports it); without
+  // them the request 404s and the session silently falls back.
+  "ort-wasm-simd-threaded.asyncify.mjs",
+  "ort-wasm-simd-threaded.asyncify.wasm",
+  "ort-wasm-simd-threaded.jspi.mjs",
+  "ort-wasm-simd-threaded.jspi.wasm",
 ]) {
   cpSync(resolve(ortDist, file), resolve(root, "public/ort", file));
 }
