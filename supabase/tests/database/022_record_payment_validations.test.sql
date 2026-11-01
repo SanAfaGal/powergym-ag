@@ -48,14 +48,16 @@ select throws_ok(
 -- date can be given for a late entry -- the RPC stores that date as-is.
 select is(
   (
-    select payment_date::date
+    -- the app's calendar is Bogota's, not the session's (UTC): around 19:00-24:00
+    -- Bogota time the two dates differ and a plain ::date flaked
+    select (payment_date at time zone 'America/Bogota')::date
     from public.record_payment(
       (select id from public.subscriptions
          where client_id = (select id from public.clients where dni_number = 'PAY-GUARD-CLIENT-1')),
-      30000, 'cash', 'backdated payment', null, current_date - 1
+      30000, 'cash', 'backdated payment', null, public.today_bogota() - 1
     )
   ),
-  current_date - 1,
+  public.today_bogota() - 1,
   'record_payment stores the given payment_date instead of defaulting to today'
 );
 
@@ -64,7 +66,7 @@ select throws_ok(
   $$ select public.record_payment(
        (select id from public.subscriptions
           where client_id = (select id from public.clients where dni_number = 'PAY-GUARD-CLIENT-1')),
-       10000, 'cash', 'future dated', null, current_date + 1
+       10000, 'cash', 'future dated', null, public.today_bogota() + 1
      ) $$,
   'P0001',
   'La fecha del pago no puede ser posterior a hoy',
