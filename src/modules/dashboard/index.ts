@@ -11,3 +11,4 @@ export {
 } from "./components/DashboardSkeletons";
 export { DailyActivityFilter } from "./components/DailyActivityFilter";
 export { DailyActivitySection } from "./components/DailyActivitySection";
+export { ExpiringSection } from "./components/ExpiringSection";
