@@ -17,16 +17,17 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y.slice(2)}`;
 }
 
-// Clientes con membresía activa que vence de hoy a hoy+7 (el mismo rango que cuenta la tarjeta "Vencen en 7 días").
+// Clientes con membresía activa que vence hoy o mañana: lo que hay que accionar ya.
+// Se limita a dos días para que la lista no crezca; el resto se ve en Clientes con el filtro de vencimientos.
 export async function ExpiringSection() {
   const today = bogotaToday();
-  const in7 = format(addDays(new Date(`${today}T12:00:00`), 7), "yyyy-MM-dd");
-  const clients = await listExpiringClients(today, in7, { status: "active" });
+  const tomorrow = format(addDays(new Date(`${today}T12:00:00`), 1), "yyyy-MM-dd");
+  const clients = await listExpiringClients(today, tomorrow, { status: "active" });
 
   return (
     <Card id="vencen" className="scroll-mt-6">
       <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <CardTitle>Vencen en 7 días</CardTitle>
+        <CardTitle>Vencen hoy y mañana</CardTitle>
         <Badge variant={clients.length > 0 ? "secondary" : "outline"}>
           {clients.length}
         </Badge>
@@ -34,7 +35,7 @@ export async function ExpiringSection() {
       <CardContent>
         {clients.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            Nadie vence en los próximos 7 días
+            Nadie vence hoy ni mañana
           </p>
         ) : (
           <ul className="flex flex-col divide-y">

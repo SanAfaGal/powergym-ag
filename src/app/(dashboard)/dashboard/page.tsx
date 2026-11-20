@@ -59,7 +59,7 @@ export default async function DashboardPage({
           <KpiSection statsPromise={statsPromise} />
         </Suspense>
 
-        <Suspense fallback={<CardListSkeleton title="Vencen en 7 días" rows={4} />}>
+        <Suspense fallback={<CardListSkeleton title="Vencen hoy y mañana" rows={4} />}>
           <ExpiringSection />
         </Suspense>
 
