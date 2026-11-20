@@ -22,6 +22,7 @@ import {
   SubscriptionsSection,
 } from "@/modules/subscriptions";
 import { listBankAccounts } from "@/modules/bank-accounts";
+import { getClientTrace } from "@/modules/trace";
 import { getAuthContext } from "@/lib/auth/session";
 import { bogotaToday } from "@/lib/date/bogota";
 import {
@@ -86,6 +87,7 @@ export default async function ClientDetailPage({
     attendance,
     recentEntries,
     auth,
+    trace,
   ] = await Promise.all([
     getClient(id).catch(() => null),
     listDocumentTypes(),
@@ -99,6 +101,8 @@ export default async function ClientDetailPage({
     getClientAttendance(id),
     listAccessEvents({ clientId: id, result: "granted", pageSize: 8 }),
     getAuthContext(),
+    // El historial es un extra: si falla, la ficha se ve igual, sin él.
+    getClientTrace(id).catch(() => null),
   ]);
 
   if (!client) notFound();
@@ -137,6 +141,8 @@ export default async function ClientDetailPage({
                   paymentTypes={paymentTypes}
                   bankAccounts={activeBankAccounts}
                   allBankAccounts={allBankAccounts}
+                  origins={trace?.subscriptions}
+                  changes={trace?.subscriptionChanges}
                 />
               ),
             },
@@ -149,6 +155,7 @@ export default async function ClientDetailPage({
                   client={client}
                   documentTypes={documentTypes}
                   genderTypes={genderTypes}
+                  trace={trace ?? undefined}
                 />
               ),
             },
