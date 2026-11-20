@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
+  CalendarCheck,
   CreditCard,
   Landmark,
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   Sun,
   UserCog,
   Users,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +27,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -33,7 +36,9 @@ import { signOut } from "@/modules/auth";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
+  { href: "/today", label: "Hoy", icon: CalendarCheck },
   { href: "/clients", label: "Clientes", icon: Users },
+  { href: "/debtors", label: "Deudores", icon: Wallet },
   { href: "/plans", label: "Planes", icon: CreditCard },
   { href: "/access", label: "Acceso", icon: ScanFace },
 ];
@@ -54,9 +59,11 @@ const ADMIN_NAV_LINKS = [
 export function AppSidebar({
   fullName,
   isAdmin,
+  openDoubts = 0,
 }: {
   fullName: string;
   isAdmin: boolean;
+  openDoubts?: number;
 }) {
   const pathname = usePathname();
   const links = isAdmin ? [...NAV_LINKS, ...ADMIN_NAV_LINKS] : NAV_LINKS;
@@ -100,6 +107,9 @@ export function AppSidebar({
                       <link.icon />
                       <span>{link.label}</span>
                     </SidebarMenuButton>
+                    {link.href === "/today" && openDoubts > 0 && (
+                      <SidebarMenuBadge>{openDoubts}</SidebarMenuBadge>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

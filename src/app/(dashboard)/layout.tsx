@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth/session";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { getOpenDoubtsCount } from "@/modules/activity";
 import {
   SidebarInset,
   SidebarProvider,
@@ -22,11 +23,15 @@ export default async function DashboardLayout({
   // re-validation.
   if (!auth) redirect("/login");
 
+  // Si falla, el menú simplemente no muestra el globito.
+  const openDoubts = await getOpenDoubtsCount().catch(() => 0);
+
   return (
     <SidebarProvider>
       <AppSidebar
         fullName={auth.profile.full_name}
         isAdmin={auth.profile.role === "admin"}
+        openDoubts={openDoubts}
       />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4 md:hidden">
