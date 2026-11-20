@@ -12,18 +12,13 @@ import {
   CopyRenewalRemindersButton,
   formatRenewalRemindersExcel,
   Pager,
+  CLIENT_VIEWS,
+  DEFAULT_CLIENT_VIEW,
+  type ClientView,
   type SortOption,
 } from "@/modules/clients";
-import { listActivePlansWithPrice, type SubscriptionStatus } from "@/modules/subscriptions";
+import { listActivePlansWithPrice } from "@/modules/subscriptions";
 
-const VALID_SUBSCRIPTION_STATUSES = [
-  "active",
-  "pending_payment",
-  "scheduled",
-  "expired",
-  "canceled",
-  "none",
-];
 const VALID_SORTS: SortOption[] = ["days_remaining_asc", "days_remaining_desc"];
 
 export default async function ClientsPage({
@@ -31,8 +26,7 @@ export default async function ClientsPage({
 }: {
   searchParams: Promise<{
     q?: string;
-    status?: string;
-    subscriptionStatus?: string;
+    view?: string;
     planId?: string;
     hasBalance?: string;
     expiresFrom?: string;
@@ -43,17 +37,12 @@ export default async function ClientsPage({
 }) {
   const params = await searchParams;
   const q = params.q ?? "";
-  const status =
-    params.status === "active" ||
-    params.status === "inactive" ||
-    params.status === "all"
-      ? params.status
-      : "active";
-  const subscriptionStatus = VALID_SUBSCRIPTION_STATUSES.includes(
-    params.subscriptionStatus ?? ""
-  )
-    ? (params.subscriptionStatus as SubscriptionStatus | "none")
-    : "all";
+  const view: ClientView = CLIENT_VIEWS.includes(params.view as ClientView)
+    ? (params.view as ClientView)
+    : DEFAULT_CLIENT_VIEW;
+  // Un cliente dado de baja a mano (is_active = false) no aparece en Activos ni en Deben;
+  // sí en Antiguos y Todos, para poder encontrarlo.
+  const status = view === "activos" || view === "deben" ? "active" : "all";
   const planId = params.planId ?? "";
   const hasBalance = params.hasBalance === "yes";
   const expiresFrom = params.expiresFrom ?? "";
@@ -70,7 +59,7 @@ export default async function ClientsPage({
       listClients({
         q,
         status,
-        subscriptionStatus,
+        view,
         planId: planId || undefined,
         hasBalance,
         expiresFrom: expiresFrom || undefined,
@@ -92,9 +81,7 @@ export default async function ClientsPage({
   function buildHref(targetPage: number) {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
-    if (status !== "active") p.set("status", status);
-    if (subscriptionStatus !== "all")
-      p.set("subscriptionStatus", subscriptionStatus);
+    if (view !== DEFAULT_CLIENT_VIEW) p.set("view", view);
     if (planId) p.set("planId", planId);
     if (hasBalance) p.set("hasBalance", "yes");
     if (isExpiringFilterActive) {
@@ -109,8 +96,7 @@ export default async function ClientsPage({
 
   const hasFilters =
     Boolean(q) ||
-    status !== "active" ||
-    subscriptionStatus !== "all" ||
+    view !== DEFAULT_CLIENT_VIEW ||
     Boolean(planId) ||
     hasBalance ||
     isExpiringFilterActive;
@@ -130,8 +116,7 @@ export default async function ClientsPage({
       <div className="mb-4">
         <ClientFilters
           defaultQuery={q}
-          status={status}
-          subscriptionStatus={subscriptionStatus}
+          view={view}
           planId={planId}
           hasBalance={hasBalance}
           expiresFrom={expiresFrom}
