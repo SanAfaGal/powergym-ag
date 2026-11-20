@@ -14,6 +14,12 @@ import { RenewSubscriptionDialog } from "./RenewSubscriptionDialog";
 import type { SubscriptionRow, PlanOption, PaymentType } from "../queries";
 import type { BankAccount } from "@/modules/bank-accounts";
 import { bogotaToday } from "@/lib/date/bogota";
+import {
+  OriginNote,
+  SubscriptionHistory,
+  type Origin,
+  type SubscriptionChange,
+} from "@/modules/trace";
 
 const OPEN_STATUSES = ["active", "pending_payment", "scheduled"];
 const CANCELABLE_STATUSES = ["active", "pending_payment", "scheduled"];
@@ -39,6 +45,8 @@ export function SubscriptionsSection({
   paymentTypes,
   bankAccounts,
   allBankAccounts,
+  origins = {},
+  changes = {},
 }: {
   clientId: string;
   subscriptions: SubscriptionRow[];
@@ -46,6 +54,8 @@ export function SubscriptionsSection({
   paymentTypes: PaymentType[];
   bankAccounts: BankAccount[];
   allBankAccounts: BankAccount[];
+  origins?: Record<string, Origin>;
+  changes?: Record<string, SubscriptionChange[]>;
 }) {
   // An 'active' row whose end_date already passed doesn't count as open --
   // see the matching comment in actions.ts's createSubscription for why
@@ -119,6 +129,12 @@ export function SubscriptionsSection({
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
+                    <div className="mb-4">
+                      <OriginNote origin={origins[sub.id]} what="Membresía" />
+                      <div className="mt-2">
+                        <SubscriptionHistory changes={changes[sub.id]} />
+                      </div>
+                    </div>
                     {sub.status === "canceled" && (
                       <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                         Cancelada

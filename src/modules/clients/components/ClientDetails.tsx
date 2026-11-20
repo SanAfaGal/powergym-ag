@@ -1,6 +1,7 @@
 import type { Client, CatalogEntry } from "../queries";
 import { ContactLinks } from "./ContactLinks";
 import { EditClientDialog } from "./EditClientDialog";
+import { ClientEditHistory, OriginNote, type ClientTrace } from "@/modules/trace";
 
 function calculateAge(birthDate: string) {
   const birth = new Date(birthDate);
@@ -50,10 +51,12 @@ export function ClientDetails({
   client,
   documentTypes,
   genderTypes,
+  trace,
 }: {
   client: Client;
   documentTypes: CatalogEntry[];
   genderTypes: CatalogEntry[];
+  trace?: ClientTrace;
 }) {
   const documentTypeName = client.dni_type
     ? (documentTypes.find((d) => d.code === client.dni_type)?.name ??
@@ -117,6 +120,14 @@ export function ClientDetails({
           <span className="font-medium">Sin registrar:</span> {missing.join(", ")}.
           Se completan con Editar.
         </p>
+      )}
+
+      {trace && (
+        <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
+          <h2 className="font-heading text-base font-semibold">Origen</h2>
+          <OriginNote origin={trace.created} what="Cliente" />
+          <ClientEditHistory edits={trace.edits} />
+        </section>
       )}
     </div>
   );
