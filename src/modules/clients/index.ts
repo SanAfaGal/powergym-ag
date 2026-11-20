@@ -20,3 +20,8 @@ export {
   type HeaderChip,
 } from "./components/ClientHeader";
 export { ClientDetails } from "./components/ClientDetails";
+export {
+  CLIENT_VIEWS,
+  DEFAULT_CLIENT_VIEW,
+  type ClientView,
+} from "./lib/clientView";

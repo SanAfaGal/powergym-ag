@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { SubscriptionStatus } from "@/modules/subscriptions";
+import { CURRENT_SUBSCRIPTION_STATUSES, type ClientView } from "./lib/clientView";
 
 export type Client = {
   id: string;
@@ -95,7 +96,7 @@ function applyClientFilters<
 export async function listClients({
   q,
   status,
-  subscriptionStatus,
+  view = "todos",
   planId,
   hasBalance,
   expiresFrom,
@@ -103,7 +104,7 @@ export async function listClients({
   sort = "days_remaining_asc",
   page = 1,
 }: ClientFilterParams & {
-  subscriptionStatus?: SubscriptionStatus | "none" | "all";
+  view?: ClientView;
   expiresFrom?: string;
   expiresTo?: string;
   sort?: SortOption;
@@ -121,21 +122,24 @@ export async function listClients({
     // either still running or already expired (so staff can find who lapsed
     // yesterday and was never notified). Clients who renewed are not listed:
     // the view shows one subscription per client, active first. Overrides
-    // subscriptionStatus rather than combining with it.
+    // the tab (view) rather than combining with it.
     query = query
       .in("subscription_status", EXPIRY_STATUSES);
     if (expiresFrom) query = query.gte("end_date", expiresFrom);
     if (expiresTo) query = query.lte("end_date", expiresTo);
-  } else if (subscriptionStatus === "none") {
-    query = query.is("subscription_id", null);
-  } else if (subscriptionStatus && subscriptionStatus !== "all") {
-    query = query.eq("subscription_status", subscriptionStatus);
+  } else if (view === "antiguos") {
+    query = query.or(
+      "subscription_id.is.null,subscription_status.in.(expired,canceled)"
+    );
+  } else if (view === "activos" || view === "deben") {
+    query = query.in("subscription_status", [...CURRENT_SUBSCRIPTION_STATUSES]);
+    if (view === "deben") query = query.gt("remaining", 0);
   }
 
   // Expired subscriptions have no sort_days_remaining (negatives are nulled),
-  // so within an expiry view or the "Vencida" filter order by end date,
+  // so within an expiry view or the "Antiguos" tab order by end date,
   // most recently lapsed first -- the ones staff most likely forgot to notify.
-  if (expiresFrom || expiresTo || subscriptionStatus === "expired") {
+  if (expiresFrom || expiresTo || view === "antiguos") {
     query = query.order("end_date", { ascending: false });
   } else {
     const { column, ascending } = SORT_CONFIG[sort];

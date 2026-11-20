@@ -39,25 +39,15 @@ import {
 import { SegmentedFilter } from "@/components/shared/SegmentedFilter";
 import { ClientSortControl } from "./ClientSortControl";
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "Todos" },
-  { value: "active", label: "Activos" },
-  { value: "inactive", label: "Inactivos" },
-] as const;
-
-const SUBSCRIPTION_STATUS_OPTIONS = [
-  { value: "all", label: "Todas las suscripciones" },
-  { value: "active", label: "Activa" },
-  { value: "pending_payment", label: "Pendiente" },
-  { value: "scheduled", label: "Programada" },
-  { value: "expired", label: "Vencida" },
-  { value: "canceled", label: "Cancelada" },
-  { value: "none", label: "Sin suscripción" },
+const VIEW_OPTIONS = [
+  { value: "activos", label: "Activos" },
+  { value: "deben", label: "Deben" },
+  { value: "antiguos", label: "Antiguos" },
+  { value: "todos", label: "Todos" },
 ] as const;
 
 const FILTER_KEYS = [
-  "status",
-  "subscriptionStatus",
+  "view",
   "planId",
   "hasBalance",
   "expiresFrom",
@@ -74,14 +64,9 @@ const EXPIRY_PRESETS = [
   { label: "Próximos 7 días", from: 0, to: 7 },
 ] as const;
 
-const SUBSCRIPTION_STATUS_ITEMS = Object.fromEntries(
-  SUBSCRIPTION_STATUS_OPTIONS.map((opt) => [opt.value, opt.label])
-);
-
 export function ClientFilters({
   defaultQuery,
-  status,
-  subscriptionStatus,
+  view,
   planId,
   hasBalance,
   expiresFrom,
@@ -91,8 +76,7 @@ export function ClientFilters({
   today,
 }: {
   defaultQuery: string;
-  status: string;
-  subscriptionStatus: string;
+  view: string;
   planId: string;
   hasBalance: boolean;
   expiresFrom: string;
@@ -104,8 +88,6 @@ export function ClientFilters({
 }) {
   const isExpiringFilterActive = Boolean(expiresFrom || expiresTo);
   const activeCount = [
-    status !== "active",
-    subscriptionStatus !== "all",
     Boolean(planId),
     hasBalance,
     isExpiringFilterActive,
@@ -214,44 +196,6 @@ export function ClientFilters({
   function filterGroups() {
     return (
       <>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            Cliente
-          </span>
-          <SegmentedFilter
-            aria-label="Estado del cliente"
-            options={STATUS_OPTIONS}
-            value={status}
-            onChange={(v) => setParam("status", v, "active")}
-          />
-        </div>
-        <div className="flex w-56 flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            Suscripción
-          </span>
-          <Select
-            items={SUBSCRIPTION_STATUS_ITEMS}
-            value={subscriptionStatus}
-            onValueChange={(v) => setParam("subscriptionStatus", v ?? "all", "all")}
-            disabled={isExpiringFilterActive}
-          >
-            <SelectTrigger aria-label="Estado de suscripción" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SUBSCRIPTION_STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {isExpiringFilterActive && (
-            <span className="text-xs text-muted-foreground">
-              Se ignora mientras el filtro de vencimientos esté activo
-            </span>
-          )}
-        </div>
         <div className="flex w-80 flex-col gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">
             Vence entre
@@ -332,6 +276,18 @@ export function ClientFilters({
     );
   }
 
+  // Pestañas: la forma principal de recorrer la lista (activos / deben / antiguos / todos).
+  function viewTabs() {
+    return (
+      <SegmentedFilter
+        aria-label="Qué clientes ver"
+        options={VIEW_OPTIONS}
+        value={(view as (typeof VIEW_OPTIONS)[number]["value"]) ?? "activos"}
+        onChange={(v) => setParam("view", v, "activos")}
+      />
+    );
+  }
+
   function searchInput() {
     return (
       <div className="relative">
@@ -365,6 +321,7 @@ export function ClientFilters({
       {/* Desktop / tablet */}
       <Card size="sm" className="hidden md:block">
         <CardContent className="flex flex-col gap-3">
+          <div>{viewTabs()}</div>
           <Collapsible open={desktopFiltersOpen} onOpenChange={setDesktopFiltersOpen}>
             {/* Toolbar: search grows to absorb all the slack, filter
                 controls stay a tight cluster, sort anchors to the far
@@ -406,6 +363,7 @@ export function ClientFilters({
 
       {/* Mobile */}
       <div className="flex flex-col gap-2 md:hidden">
+        {viewTabs()}
         {searchInput()}
         <div className="flex flex-wrap items-center gap-2">
           <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
