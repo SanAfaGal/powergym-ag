@@ -1,15 +1,18 @@
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import type { DashboardStats } from "../queries";
 
 function KpiTile({
   label,
   value,
+  href,
 }: {
   label: string;
   value: string;
+  href?: string;
 }) {
-  return (
-    <Card>
+  const card = (
+    <Card className={href ? "transition-colors group-hover:bg-muted/50" : undefined}>
       <CardContent>
         <p className="text-sm text-muted-foreground">{label}</p>
         <p className="mt-1 font-heading text-2xl font-bold tabular-nums tracking-tight">
@@ -18,11 +21,26 @@ function KpiTile({
       </CardContent>
     </Card>
   );
+  return href ? (
+    <Link href={href} className="group">
+      {card}
+    </Link>
+  ) : (
+    card
+  );
 }
 
-export function DashboardKpiRow({ stats }: { stats: DashboardStats }) {
+export function DashboardKpiRow({
+  stats,
+  debtTotal,
+  debtorCount,
+}: {
+  stats: DashboardStats;
+  debtTotal: number;
+  debtorCount: number;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <KpiTile
         label="Clientes activos"
         value={stats.client_stats.total_active_clients.toLocaleString(
@@ -43,13 +61,13 @@ export function DashboardKpiRow({ stats }: { stats: DashboardStats }) {
       />
       <KpiTile
         label="Deuda pendiente"
-        value={`$${stats.financial_stats.pending_debt.toLocaleString(
-          "es-CO"
-        )}`}
+        value={`$${debtTotal.toLocaleString("es-CO")}`}
+        href="/debtors"
       />
       <KpiTile
-        label="Vencen en 7 días"
-        value={stats.alerts.expiring_within_7_days.toLocaleString("es-CO")}
+        label="Deudas abiertas"
+        value={debtorCount.toLocaleString("es-CO")}
+        href="/debtors"
       />
     </div>
   );

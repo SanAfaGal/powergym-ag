@@ -11,7 +11,9 @@ import {
   CardListSkeleton,
   DailyActivityFilter,
   DailyActivitySection,
+  ExpiringSection,
 } from "@/modules/dashboard";
+import { TodaySummary } from "@/modules/activity";
 import { bogotaToday } from "@/lib/date/bogota";
 
 export default async function DashboardPage({
@@ -43,12 +45,22 @@ export default async function DashboardPage({
       />
 
       <div className="mb-6">
+        <Suspense fallback={null}>
+          <TodaySummary date={today} />
+        </Suspense>
+      </div>
+
+      <div className="mb-6">
         <DashboardFilters start={start} end={end} />
       </div>
 
       <div className="flex flex-col gap-6">
         <Suspense fallback={<KpiSkeleton />}>
           <KpiSection statsPromise={statsPromise} />
+        </Suspense>
+
+        <Suspense fallback={<CardListSkeleton title="Vencen hoy y mañana" rows={4} />}>
+          <ExpiringSection />
         </Suspense>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
